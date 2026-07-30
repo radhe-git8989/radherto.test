@@ -904,3 +904,18 @@ function closeApiLimitModal() {
 document.addEventListener('DOMContentLoaded', () => {
     updateApiLimitBadge();
 });
+
+function triggerMainPageFetch() {
+    const input = document.getElementById('vehicle-search');
+    const vehicleNumber = input ? input.value.trim().toUpperCase() : '';
+
+    if (!vehicleNumber) {
+        showToast('Please enter a vehicle number in the search box first!', 'error');
+        return;
+    }
+
+    // Open Vehicle Modal and populate vehicle number & fetch dates
+    openVehicleModal();
+    document.getElementById('veh-number').value = vehicleNumber;
+    autoFetchRTODates();
+}
