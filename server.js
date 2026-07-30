@@ -432,36 +432,17 @@ app.get('/api/rto/fetch-vehicle', async (req, res) => {
             });
         }
 
-        // 2. Default vehicle type to Car unless specified
+        // 2. Return empty dates if not existing in DB so user enters real dates manually
         let vehicleType = req.query.vehicle_type || 'Car';
-
-        // 3. Auto-calculate / fetch valid RTO dates
-        const now = new Date();
-        
-        // PUC: 6 months from now
-        const pucDate = new Date(now);
-        pucDate.setMonth(pucDate.getMonth() + 6);
-
-        // Insurance: 1 year from now
-        const insDate = new Date(now);
-        insDate.setFullYear(insDate.getFullYear() + 1);
-
-        // Fitness: 15 years from now
-        const fitDate = new Date(now);
-        fitDate.setFullYear(fitDate.getFullYear() + 15);
-
-        // Tax: 15 years Life Time Tax
-        const taxDate = new Date(now);
-        taxDate.setFullYear(taxDate.getFullYear() + 15);
 
         res.json({
             success: true,
             vehicle_number: vehicle_number.toUpperCase(),
             vehicle_type: vehicleType,
-            puc_expiry: formatDate(pucDate),
-            insurance_expiry: formatDate(insDate),
-            fitness_expiry: formatDate(fitDate),
-            tax_expiry: formatDate(taxDate),
+            puc_expiry: null,
+            insurance_expiry: null,
+            fitness_expiry: null,
+            tax_expiry: null,
             is_existing: false
         });
     } catch (err) {
