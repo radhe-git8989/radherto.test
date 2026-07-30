@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radhe RTO Services - Vehicle Document Management System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <!-- Ambient Glowing Orbs -->
+    <div class="fixed -top-24 -left-24 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="fixed -bottom-24 -right-24 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- ==================== 1. ADMIN LOGIN PAGE ==================== -->
+    <section id="view-login" class="flex-1 flex items-center justify-center p-4 z-10">
+        <div class="w-full max-w-md bg-slate-800/90 backdrop-blur-xl border border-slate-700/80 rounded-3xl p-8 shadow-2xl space-y-6">
+            
+            <!-- Logo & Brand Header -->
+            <div class="text-center space-y-3">
+                <div class="flex justify-center items-center">
+                    <img src="logo.png" alt="Radhe RTO Services Logo" class="h-16 w-auto object-contain rounded-2xl p-1 bg-slate-900/60 border border-slate-700 shadow-xl">
+                </div>
+                <div>
+                    <h2 class="text-2xl font-extrabold text-white tracking-wide">Radhe <span class="text-indigo-400">RTO Services</span></h2>
+                    <p class="text-xs text-slate-400 mt-1">Sign in with admin credentials to access system dashboard</p>
+                </div>
+            </div>
+
+            <!-- Login Form -->
+            <form onsubmit="handleAdminLogin(event)" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Username</label>
+                    <div class="relative flex items-center">
+                        <i class="fa-regular fa-user absolute left-4 text-slate-400"></i>
+                        <input type="text" id="login-username" required value="ravi" placeholder="Username" 
+                            class="w-full bg-slate-900/80 border border-slate-700 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Password</label>
+                    <div class="relative flex items-center">
+                        <i class="fa-solid fa-lock absolute left-4 text-slate-400"></i>
+                        <input type="password" id="login-password" required value="1234" placeholder="••••••••" 
+                            class="w-full bg-slate-900/80 border border-slate-700 rounded-xl pl-11 pr-10 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition">
+                        <i class="fa-regular fa-eye absolute right-4 text-slate-400 cursor-pointer hover:text-slate-200" onclick="toggleLoginPassword(this)"></i>
+                    </div>
+                </div>
+
+                <button type="submit" id="login-submit-btn" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2 transition transform active:scale-95">
+                    <span>Login to Dashboard</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ==================== 2. MAIN APP PORTAL (DASHBOARD) ==================== -->
+    <div id="app-portal" class="hidden flex-1 flex flex-col">
+        <!-- TOP HEADER NAVBAR -->
+        <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700/80 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <!-- Brand Logo & Name -->
+                <div class="flex items-center space-x-3">
+                    <img src="logo.png" alt="Radhe RTO Services Logo" class="h-10 w-auto object-contain rounded-lg p-0.5 bg-slate-900/50 border border-slate-700">
+                    <div>
+                        <h1 class="text-lg font-bold text-white tracking-wide">Radhe <span class="text-indigo-400">RTO Services</span></h1>
+                        <p class="text-xs text-slate-400">Vehicle Expiry & Customer Portal</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="hidden md:flex space-x-1">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 bg-indigo-600 text-white shadow-md">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <span>Dashboard</span>
+                    </button>
+                    <button onclick="switchTab('customers')" id="nav-customers" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                        <i class="fa-solid fa-users"></i>
+                        <span>Customers</span>
+                    </button>
+                    <button onclick="switchTab('vehicles')" id="nav-vehicles" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                        <i class="fa-solid fa-car"></i>
+                        <span>Vehicles</span>
+                    </button>
+                </nav>
+
+                <!-- User Profile & Logout -->
+                <div class="flex items-center space-x-3">
+                    <button onclick="triggerCronJob()" class="hidden sm:flex bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg items-center space-x-1.5 shadow transition">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Run Cron</span>
+                    </button>
+
+                    <div class="flex items-center space-x-2 pl-3 border-l border-slate-700">
+                        <div class="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow">
+                            R
+                        </div>
+                        <span class="text-xs font-bold text-slate-200 hidden sm:inline" id="admin-user-label">Ravi (Admin)</span>
+                        <button onclick="handleAdminLogout()" title="Logout" class="text-slate-400 hover:text-rose-400 text-sm p-1.5 rounded-lg hover:bg-slate-700 transition">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTAINER -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+            <!-- ================= PAGE 1: DASHBOARD VIEW ================= -->
+            <section id="view-dashboard" class="space-y-8">
+                <!-- Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">System Dashboard Overview</h2>
+                        <p class="text-sm text-slate-400">Track upcoming document expiries and automate WhatsApp customer reminders.</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="openCustomerModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-xl flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition">
+                            <i class="fa-solid fa-user-plus"></i>
+                            <span>Add Customer</span>
+                        </button>
+                        <button onclick="openVehicleModal()" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-xl flex items-center space-x-2 shadow-lg shadow-purple-600/30 transition">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Add Vehicle</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Metric Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-5 flex items-center justify-between shadow-lg">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Customers</p>
+                            <h3 class="text-3xl font-extrabold text-white mt-1" id="stat-customers">0</h3>
+                            <span class="text-xs text-emerald-400 flex items-center mt-1"><i class="fa-solid fa-circle-check mr-1"></i> Active Database</span>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl font-bold border border-blue-500/20">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-5 flex items-center justify-between shadow-lg">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Registered Vehicles</p>
+                            <h3 class="text-3xl font-extrabold text-white mt-1" id="stat-vehicles">0</h3>
+                            <span class="text-xs text-indigo-400 flex items-center mt-1"><i class="fa-solid fa-car mr-1"></i> Tracked Vehicles</span>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-xl font-bold border border-indigo-500/20">
+                            <i class="fa-solid fa-truck-moving"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-5 flex items-center justify-between shadow-lg">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Upcoming Expiries (15 Days)</p>
+                            <h3 class="text-3xl font-extrabold text-amber-400 mt-1" id="stat-expiries-15">0</h3>
+                            <span class="text-xs text-amber-400 flex items-center mt-1"><i class="fa-solid fa-clock mr-1"></i> Action Required</span>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl font-bold border border-amber-500/20">
+                            <i class="fa-solid fa-bell"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-5 flex items-center justify-between shadow-lg">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Critical Expiries (&le;3 Days)</p>
+                            <h3 class="text-3xl font-extrabold text-rose-500 mt-1" id="stat-critical-expiries">0</h3>
+                            <span class="text-xs text-rose-400 flex items-center mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Urgent Renewal</span>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-xl font-bold border border-rose-500/20">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PROMINENT ALERTS TABLE: UPCOMING EXPIRIES -->
+                <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="p-5 border-b border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-3 h-3 rounded-full bg-amber-500 animate-ping"></div>
+                            <h3 class="text-lg font-bold text-white">Upcoming Document Expiries Alerts (&le; 15 Days)</h3>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs text-slate-400">Filter Days:</span>
+                            <select id="alert-days-filter" onchange="loadUpcomingExpiriesAlerts()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                                <option value="15" selected>Next 15 Days</option>
+                                <option value="10">Next 10 Days</option>
+                                <option value="5">Next 5 Days</option>
+                                <option value="30">Next 30 Days</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-slate-900/60 text-slate-400 text-xs uppercase font-semibold">
+                                <tr>
+                                    <th class="px-6 py-4">Customer Name</th>
+                                    <th class="px-6 py-4">Mobile Number</th>
+                                    <th class="px-6 py-4">Vehicle Number</th>
+                                    <th class="px-6 py-4">Document Type</th>
+                                    <th class="px-6 py-4">Expiry Date</th>
+                                    <th class="px-6 py-4">Days Left</th>
+                                    <th class="px-6 py-4">Status</th>
+                                    <th class="px-6 py-4 text-center">WhatsApp Alert</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alerts-table-body" class="divide-y divide-slate-700/60">
+                                <!-- Injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= PAGE 2: CUSTOMERS MANAGEMENT ================= -->
+            <section id="view-customers" class="hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Customers Directory</h2>
+                        <p class="text-sm text-slate-400">Manage customer records and contact numbers.</p>
+                    </div>
+                    <button onclick="openCustomerModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition self-start">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Add New Customer</span>
+                    </button>
+                </div>
+
+                <div class="bg-slate-800/80 border border-slate-700 p-4 rounded-xl flex items-center space-x-3">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                    <input type="text" id="customer-search" oninput="loadCustomers()" placeholder="Search customer by name, mobile, email..." class="bg-transparent border-none text-slate-100 placeholder-slate-500 focus:outline-none w-full text-sm">
+                </div>
+
+                <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-slate-900/60 text-slate-400 text-xs uppercase font-semibold">
+                                <tr>
+                                    <th class="px-6 py-4">ID</th>
+                                    <th class="px-6 py-4">Customer Name</th>
+                                    <th class="px-6 py-4">Mobile Number</th>
+                                    <th class="px-6 py-4">Email</th>
+                                    <th class="px-6 py-4">Address</th>
+                                    <th class="px-6 py-4">Total Vehicles</th>
+                                    <th class="px-6 py-4 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-table-body" class="divide-y divide-slate-700/60">
+                                <!-- Injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= PAGE 3: VEHICLES MANAGEMENT ================= -->
+            <section id="view-vehicles" class="hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Vehicles & Document Expiries</h2>
+                        <p class="text-sm text-slate-400">All registered vehicles with PUC, Insurance, Fitness & Tax dates.</p>
+                    </div>
+                    <button onclick="openVehicleModal()" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-lg shadow-purple-600/30 transition self-start">
+                        <i class="fa-solid fa-car-side"></i>
+                        <span>Add New Vehicle</span>
+                    </button>
+                </div>
+
+                <div class="bg-slate-800/80 border border-slate-700 p-4 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Search Vehicle Number</label>
+                        <input type="text" id="vehicle-search" oninput="loadVehicles()" placeholder="GJ-01-AB-1234" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none w-full">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Vehicle Type Filter</label>
+                        <select id="vehicle-type-filter" onchange="loadVehicles()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none w-full">
+                            <option value="">All Vehicle Types</option>
+                            <option value="Car">Car</option>
+                            <option value="Bike">Bike</option>
+                            <option value="Truck">Truck</option>
+                            <option value="Bus">Bus</option>
+                            <option value="Auto">Auto</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Customer Filter</label>
+                        <select id="vehicle-customer-filter" onchange="loadVehicles()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none w-full">
+                            <option value="">All Customers</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-slate-900/60 text-slate-400 text-xs uppercase font-semibold">
+                                <tr>
+                                    <th class="px-6 py-4">Vehicle Number</th>
+                                    <th class="px-6 py-4">Type</th>
+                                    <th class="px-6 py-4">Owner Name</th>
+                                    <th class="px-6 py-4">PUC Expiry</th>
+                                    <th class="px-6 py-4">Insurance Expiry</th>
+                                    <th class="px-6 py-4">Fitness Expiry</th>
+                                    <th class="px-6 py-4">Tax Expiry</th>
+                                    <th class="px-6 py-4 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vehicles-table-body" class="divide-y divide-slate-700/60">
+                                <!-- Injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ================= MODALS ================= -->
+    <!-- Customer Modal -->
+    <div id="customer-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-6 relative">
+            <button onclick="closeCustomerModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="text-xl font-bold text-white mb-4" id="customer-modal-title">Add Customer</h3>
+            
+            <form id="customer-form" onsubmit="saveCustomer(event)" class="space-y-4">
+                <input type="hidden" id="cust-id">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Customer Full Name *</label>
+                    <input type="text" id="cust-name" required placeholder="e.g. Ramesh Patel" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Mobile Number *</label>
+                    <input type="tel" id="cust-mobile" required placeholder="e.g. 9876543210" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
+                    <input type="email" id="cust-email" placeholder="e.g. ramesh@example.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Address</label>
+                    <textarea id="cust-address" rows="2" placeholder="e.g. Ahmedabad, Gujarat" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"></textarea>
+                </div>
+                <div class="flex items-center justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/30">Save Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Vehicle Modal -->
+    <div id="vehicle-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeVehicleModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="text-xl font-bold text-white mb-4" id="vehicle-modal-title">Add Vehicle</h3>
+            
+            <form id="vehicle-form" onsubmit="saveVehicle(event)" class="space-y-4">
+                <input type="hidden" id="veh-id">
+                
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Select Customer Owner *</label>
+                    <select id="veh-customer-id" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-purple-500">
+                        <option value="">-- Choose Owner --</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Vehicle Number *</label>
+                        <input type="text" id="veh-number" required placeholder="GJ-01-AB-1234" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 uppercase focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Vehicle Type</label>
+                        <select id="veh-type" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-purple-500">
+                            <option value="Car">Car</option>
+                            <option value="Bike">Bike</option>
+                            <option value="Truck">Truck</option>
+                            <option value="Bus">Bus</option>
+                            <option value="Auto">Auto</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr class="border-slate-700/60 my-2">
+                <h4 class="text-xs uppercase font-bold tracking-wider text-purple-400">Document Expiry Dates</h4>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">PUC Expiry</label>
+                        <input type="date" id="veh-puc" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Insurance Expiry</label>
+                        <input type="date" id="veh-insurance" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Fitness Expiry</label>
+                        <input type="date" id="veh-fitness" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Tax Expiry</label>
+                        <input type="date" id="veh-tax" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closeVehicleModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-xl text-sm font-semibold shadow-lg shadow-purple-600/30">Save Vehicle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATIONS -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
