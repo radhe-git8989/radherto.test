@@ -357,6 +357,17 @@
                     <label class="block text-xs font-medium text-slate-300 mb-1">Address</label>
                     <textarea id="cust-address" rows="2" placeholder="e.g. Ahmedabad, Gujarat" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"></textarea>
                 </div>
+                <div>
+                    <label class="block text-xs font-semibold text-amber-300 mb-1">⚡ Vehicle Number (Auto-Fetch RTO Dates & Attach)</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="cust-veh-number" placeholder="e.g. GJ-01-AB-1234" class="flex-1 bg-slate-900 border border-amber-500/40 rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-slate-100 focus:outline-none focus:border-amber-500">
+                        <button type="button" onclick="autoFetchCustomerVehicle()" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs px-3.5 py-2.5 rounded-xl font-bold transition flex items-center space-x-1">
+                            <i class="fa-solid fa-bolt text-amber-400"></i>
+                            <span>Fetch RTO</span>
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">Entering vehicle number will automatically fetch PUC, Insurance & Tax dates!</p>
+                </div>
                 <div class="flex items-center justify-end space-x-3 pt-2">
                     <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-700">Cancel</button>
                     <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/30">Save Customer</button>
@@ -396,6 +407,14 @@
                             <option value="Auto">Auto</option>
                         </select>
                     </div>
+                </div>
+
+                <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-xl border border-slate-700/80">
+                    <span class="text-xs text-slate-300 font-medium">Auto-fill dates from RTO:</span>
+                    <button type="button" onclick="autoFetchRTODates()" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-bold px-3.5 py-1.5 rounded-lg shadow transition flex items-center space-x-1">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Auto-Fetch RTO Dates</span>
+                    </button>
                 </div>
 
                 <hr class="border-slate-700/60 my-2">

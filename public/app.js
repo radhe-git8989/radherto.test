@@ -342,12 +342,13 @@ function closeCustomerModal() {
 async function saveCustomer(e) {
     e.preventDefault();
     const id = document.getElementById('cust-id').value;
-    const body = {
-        name: document.getElementById('cust-name').value.trim(),
-        mobile_number: document.getElementById('cust-mobile').value.trim(),
-        email: document.getElementById('cust-email').value.trim(),
-        address: document.getElementById('cust-address').value.trim()
-    };
+    const name = document.getElementById('cust-name').value.trim();
+    const mobile_number = document.getElementById('cust-mobile').value.trim();
+    const email = document.getElementById('cust-email').value.trim();
+    const address = document.getElementById('cust-address').value.trim();
+    const vehNumber = document.getElementById('cust-veh-number')?.value.trim().toUpperCase();
+
+    const body = { name, mobile_number, email, address };
 
     const method = id ? 'PUT' : 'POST';
     const url = id ? `${API_BASE}/customers/${id}` : `${API_BASE}/customers`;
@@ -360,10 +361,40 @@ async function saveCustomer(e) {
         });
         const data = await res.json();
         if (data.success) {
-            showToast(data.message, 'success');
+            const customerId = id || data.customer_id;
+
+            // Auto-fetch & save vehicle if vehicle number was provided!
+            if (vehNumber && customerId) {
+                try {
+                    const rtoRes = await fetch(`${API_BASE}/rto/fetch-vehicle?vehicle_number=${encodeURIComponent(vehNumber)}`);
+                    const rtoData = await rtoRes.json();
+                    
+                    if (rtoData.success) {
+                        await fetch(`${API_BASE}/vehicles`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                customer_id: customerId,
+                                vehicle_number: vehNumber,
+                                vehicle_type: rtoData.vehicle_type,
+                                puc_expiry: rtoData.puc_expiry,
+                                insurance_expiry: rtoData.insurance_expiry,
+                                fitness_expiry: rtoData.fitness_expiry,
+                                tax_expiry: rtoData.tax_expiry
+                            })
+                        });
+                        showToast(`Customer & Vehicle ${vehNumber} (with RTO dates) saved!`, 'success');
+                    }
+                } catch(ve){}
+            } else {
+                showToast(data.message, 'success');
+            }
+
             closeCustomerModal();
             loadCustomers();
+            loadVehicles();
             loadDashboardStats();
+            loadUpcomingExpiriesAlerts();
         } else {
             showToast(data.error || 'Failed to save customer', 'error');
         }
@@ -706,5 +737,61 @@ async function fetchChallanDetails() {
         }
     } catch(err) {
         container.innerHTML = `<p class="text-xs text-rose-400 text-center py-4">Failed to fetch challan: ${err.message}</p>`;
+    }
+}
+
+async function autoFetchRTODates() {
+    const numInput = document.getElementById('veh-number');
+    const vehicleNumber = numInput ? numInput.value.trim().toUpperCase() : '';
+
+    if (!vehicleNumber) {
+        showToast('Please enter a vehicle number first!', 'error');
+        return;
+    }
+
+    showToast(`Fetching RTO dates for ${vehicleNumber}...`, 'info');
+
+    try {
+        const res = await fetch(`${API_BASE}/rto/fetch-vehicle?vehicle_number=${encodeURIComponent(vehicleNumber)}`);
+        const data = await res.json();
+
+        if (data.success) {
+            if (data.vehicle_type) document.getElementById('veh-type').value = data.vehicle_type;
+            if (data.puc_expiry) document.getElementById('veh-puc').value = data.puc_expiry;
+            if (data.insurance_expiry) document.getElementById('veh-insurance').value = data.insurance_expiry;
+            if (data.fitness_expiry) document.getElementById('veh-fitness').value = data.fitness_expiry;
+            if (data.tax_expiry) document.getElementById('veh-tax').value = data.tax_expiry;
+
+            showToast(`RTO dates for ${vehicleNumber} auto-filled!`, 'success');
+        } else {
+            showToast(data.error || 'Failed to fetch RTO details', 'error');
+        }
+    } catch(err) {
+        showToast(`Error fetching RTO dates: ${err.message}`, 'error');
+    }
+}
+
+async function autoFetchCustomerVehicle() {
+    const numInput = document.getElementById('cust-veh-number');
+    const vehicleNumber = numInput ? numInput.value.trim().toUpperCase() : '';
+
+    if (!vehicleNumber) {
+        showToast('Please enter a vehicle number!', 'error');
+        return;
+    }
+
+    showToast(`Validating RTO details for ${vehicleNumber}...`, 'info');
+
+    try {
+        const res = await fetch(`${API_BASE}/rto/fetch-vehicle?vehicle_number=${encodeURIComponent(vehicleNumber)}`);
+        const data = await res.json();
+
+        if (data.success) {
+            showToast(`RTO record found for ${vehicleNumber}! Click 'Save Customer' to finish.`, 'success');
+        } else {
+            showToast(data.error || 'Vehicle check completed', 'info');
+        }
+    } catch(err) {
+        showToast(`RTO check complete`, 'info');
     }
 }

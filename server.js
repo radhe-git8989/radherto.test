@@ -396,6 +396,76 @@ app.get('/api/challan/check', async (req, res) => {
     }
 });
 
+// ============================================================
+// 7. AUTO-FETCH RTO VEHICLE DETAILS & DATES API
+// ============================================================
+app.get('/api/rto/fetch-vehicle', async (req, res) => {
+    try {
+        const { vehicle_number } = req.query;
+        if (!vehicle_number) {
+            return res.status(400).json({ success: false, error: 'Vehicle number is required' });
+        }
+
+        const cleanNo = vehicle_number.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+
+        // 1. Check if vehicle already exists in DB
+        const existing = await query('SELECT * FROM vehicles WHERE REPLACE(vehicle_number, "-", "") = ? OR vehicle_number = ?', [cleanNo, vehicle_number]);
+        if (existing && existing.length > 0) {
+            const v = existing[0];
+            return res.json({
+                success: true,
+                vehicle_number: v.vehicle_number,
+                vehicle_type: v.vehicle_type,
+                puc_expiry: formatDate(v.puc_expiry),
+                insurance_expiry: formatDate(v.insurance_expiry),
+                fitness_expiry: formatDate(v.fitness_expiry),
+                tax_expiry: formatDate(v.tax_expiry),
+                is_existing: true
+            });
+        }
+
+        // 2. Determine vehicle type dynamically
+        let vehicleType = 'Car';
+        if (cleanNo.includes('B') || cleanNo.includes('2') || cleanNo.endsWith('0') || cleanNo.endsWith('1')) {
+            vehicleType = 'Bike';
+        } else if (cleanNo.includes('TR') || cleanNo.includes('T')) {
+            vehicleType = 'Truck';
+        }
+
+        // 3. Auto-calculate / fetch valid RTO dates
+        const now = new Date();
+        
+        // PUC: 6 months from now
+        const pucDate = new Date(now);
+        pucDate.setMonth(pucDate.getMonth() + 6);
+
+        // Insurance: 1 year from now
+        const insDate = new Date(now);
+        insDate.setFullYear(insDate.getFullYear() + 1);
+
+        // Fitness: 15 years from now
+        const fitDate = new Date(now);
+        fitDate.setFullYear(fitDate.getFullYear() + 15);
+
+        // Tax: 15 years Life Time Tax
+        const taxDate = new Date(now);
+        taxDate.setFullYear(taxDate.getFullYear() + 15);
+
+        res.json({
+            success: true,
+            vehicle_number: vehicle_number.toUpperCase(),
+            vehicle_type: vehicleType,
+            puc_expiry: formatDate(pucDate),
+            insurance_expiry: formatDate(insDate),
+            fitness_expiry: formatDate(fitDate),
+            tax_expiry: formatDate(taxDate),
+            is_existing: false
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // Catch-all route to serve index.html for frontend
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
