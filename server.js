@@ -338,6 +338,11 @@ app.post('/api/reminders/send-whatsapp', async (req, res) => {
     }
 });
 
+// Catch-all route to serve index.html for frontend
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Start Server after initializing Database & Cron
 async function startServer() {
     await initDB();
