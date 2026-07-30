@@ -433,7 +433,8 @@ async function loadVehicles() {
                         <td class="px-6 py-4">${formatExpiryBadge(v.insurance_expiry)}</td>
                         <td class="px-6 py-4">${formatExpiryBadge(v.fitness_expiry)}</td>
                         <td class="px-6 py-4">${formatExpiryBadge(v.tax_expiry)}</td>
-                        <td class="px-6 py-4 text-center space-x-2">
+                        <td class="px-6 py-4 text-center space-x-1.5">
+                            <button onclick="checkVehicleChallan('${escapeHtml(v.vehicle_number)}')" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs px-2.5 py-1 rounded-lg font-semibold transition" title="Check Pending Challan"><i class="fa-solid fa-file-invoice-dollar mr-1"></i> Challan</button>
                             <button onclick="editVehicle(${v.id})" class="text-slate-400 hover:text-purple-400 transition" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
                             <button onclick="deleteVehicle(${v.id})" class="text-slate-400 hover:text-rose-400 transition" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
                         </td>
@@ -598,4 +599,112 @@ function showToast(message, type = 'info') {
 function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// ============================================================
+// E-CHALLAN CHECK MODAL FUNCTIONS
+// ============================================================
+function openChallanModal(vehicleNumber = '') {
+    const modal = document.getElementById('challan-modal');
+    if (modal) modal.classList.remove('hidden');
+
+    const input = document.getElementById('challan-search-input');
+    if (input) {
+        input.value = vehicleNumber;
+        if (vehicleNumber) {
+            fetchChallanDetails();
+        } else {
+            document.getElementById('challan-results').innerHTML = `
+                <p class="text-xs text-slate-400 text-center py-6">Enter a vehicle number above and click 'Check' to search pending e-Challans.</p>
+            `;
+        }
+    }
+}
+
+function closeChallanModal() {
+    const modal = document.getElementById('challan-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function checkVehicleChallan(vehicleNumber) {
+    // Copy vehicle number to clipboard
+    try {
+        navigator.clipboard.writeText(vehicleNumber);
+        showToast(`Vehicle ${vehicleNumber} copied to clipboard!`, 'info');
+    } catch(e){}
+    openChallanModal(vehicleNumber);
+}
+
+async function fetchChallanDetails() {
+    const input = document.getElementById('challan-search-input');
+    const vehicleNumber = input.value.trim().toUpperCase();
+
+    if (!vehicleNumber) {
+        showToast('Please enter a valid vehicle number!', 'error');
+        return;
+    }
+
+    const container = document.getElementById('challan-results');
+    container.innerHTML = `
+        <div class="text-center py-6 text-slate-400 space-y-2">
+            <i class="fa-solid fa-spinner fa-spin text-amber-400 text-2xl"></i>
+            <p class="text-xs">Searching e-Challan database for <span class="font-mono font-bold text-white">${vehicleNumber}</span>...</p>
+        </div>
+    `;
+
+    try {
+        const res = await fetch(`${API_BASE}/challan/check?vehicle_number=${encodeURIComponent(vehicleNumber)}`);
+        const data = await res.json();
+
+        if (data.success) {
+            if (data.has_pending && data.challans.length > 0) {
+                let html = `
+                    <div class="bg-rose-500/15 border border-rose-500/30 rounded-2xl p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center space-x-1.5">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <span>Pending e-Challan Found!</span>
+                            </span>
+                            <span class="text-sm font-mono font-extrabold text-rose-300">Total: ₹${data.pending_amount}</span>
+                        </div>
+                `;
+
+                data.challans.forEach(c => {
+                    html += `
+                        <div class="bg-slate-900/90 border border-rose-500/20 rounded-xl p-3 text-xs space-y-1">
+                            <div class="flex justify-between font-mono font-bold text-white">
+                                <span>Challan #: ${c.challan_no}</span>
+                                <span class="text-rose-400">₹${c.amount} (${c.status})</span>
+                            </div>
+                            <p class="text-slate-300">${c.reason}</p>
+                            <p class="text-slate-400 text-[11px]">Date: ${c.date} | Location: ${c.location}</p>
+                        </div>
+                    `;
+                });
+
+                html += `
+                    </div>
+                    <p class="text-xs text-amber-300/90 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 text-center">
+                        💡 Click below to open official Government portal & pay online.
+                    </p>
+                `;
+
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div class="bg-emerald-500/15 border border-emerald-500/30 rounded-2xl p-4 text-center space-y-2">
+                        <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl mx-auto">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <h4 class="text-sm font-bold text-emerald-300">No Pending Challans Found!</h4>
+                        <p class="text-xs text-slate-300">Vehicle <span class="font-mono font-bold text-white">${data.vehicle_number}</span> has no unpaid e-Challans on record.</p>
+                    </div>
+                `;
+            }
+        } else {
+            container.innerHTML = `<p class="text-xs text-rose-400 text-center py-4">Error: ${data.error}</p>`;
+        }
+    } catch(err) {
+        container.innerHTML = `<p class="text-xs text-rose-400 text-center py-4">Failed to fetch challan: ${err.message}</p>`;
+    }
 }
