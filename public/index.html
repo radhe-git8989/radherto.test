@@ -95,6 +95,11 @@
 
                 <!-- User Profile & Logout -->
                 <div class="flex items-center space-x-3">
+                    <div id="api-limit-badge" onclick="showApiLimitModal()" class="hidden sm:flex bg-slate-900 border border-amber-500/40 hover:border-amber-400 text-amber-300 text-xs font-semibold px-3 py-1.5 rounded-lg items-center space-x-1.5 cursor-pointer shadow transition" title="Click to view RTO API limit details">
+                        <i class="fa-solid fa-bolt text-amber-400"></i>
+                        <span id="api-limit-text">RTO API: 7/7 Left</span>
+                    </div>
+
                     <button onclick="triggerCronJob()" class="hidden sm:flex bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg items-center space-x-1.5 shadow transition">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                         <span>Run Cron</span>
@@ -486,6 +491,33 @@
                     </a>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- ==================== 6. API LIMIT WARNING MODAL ==================== -->
+    <div id="api-limit-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 relative">
+            <button onclick="closeApiLimitModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xl shadow">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">RTO API Limit Status</h3>
+                    <p class="text-xs text-slate-400">Daily & Monthly Search Usage Tracker</p>
+                </div>
+            </div>
+
+            <div id="api-limit-modal-body" class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 space-y-3">
+                <!-- Dynamic Limit Info -->
+            </div>
+
+            <button onclick="closeApiLimitModal()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                Got it
+            </button>
         </div>
     </div>
 

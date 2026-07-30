@@ -780,6 +780,12 @@ async function autoFetchRTODates() {
         const res = await fetch(`${API_BASE}/rto/fetch-vehicle?vehicle_number=${encodeURIComponent(vehicleNumber)}`);
         const data = await res.json();
 
+        if (data.limit_reached) {
+            showApiLimitModal(data.message);
+            updateApiLimitBadge();
+            return;
+        }
+
         if (data.success) {
             // Fill document dates without overriding user selected Vehicle Type
             if (data.puc_expiry) document.getElementById('veh-puc').value = data.puc_expiry;
@@ -788,6 +794,7 @@ async function autoFetchRTODates() {
             if (data.tax_expiry) document.getElementById('veh-tax').value = data.tax_expiry;
 
             showToast(`RTO dates for ${vehicleNumber} auto-filled!`, 'success');
+            updateApiLimitBadge();
         } else {
             showToast(data.error || 'Failed to fetch RTO details', 'error');
         }
@@ -820,3 +827,80 @@ async function autoFetchCustomerVehicle() {
         showToast(`RTO check complete`, 'info');
     }
 }
+
+// ============================================================
+// API LIMIT TRACKER FRONTEND LOGIC
+// ============================================================
+async function updateApiLimitBadge() {
+    try {
+        const res = await fetch(`${API_BASE}/rto/limit-status`);
+        const data = await res.json();
+        if (data.success) {
+            const badge = document.getElementById('api-limit-badge');
+            const text = document.getElementById('api-limit-text');
+            if (badge && text) {
+                badge.classList.remove('hidden');
+                text.textContent = `RTO API: ${data.remaining_today}/${data.daily_limit} Left Today`;
+                if (data.remaining_today === 0) {
+                    badge.classList.replace('border-amber-500/40', 'border-rose-500/60');
+                    badge.classList.replace('text-amber-300', 'text-rose-300');
+                }
+            }
+        }
+    } catch(e){}
+}
+
+async function showApiLimitModal(customMsg = null) {
+    const modal = document.getElementById('api-limit-modal');
+    const body = document.getElementById('api-limit-modal-body');
+    if (!modal || !body) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/rto/limit-status`);
+        const data = await res.json();
+
+        let warningBanner = '';
+        if (customMsg || (data.success && data.remaining_today === 0)) {
+            warningBanner = `
+                <div class="bg-rose-500/15 border border-rose-500/40 rounded-xl p-3 text-xs text-rose-300 space-y-1">
+                    <span class="font-bold flex items-center space-x-1">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>Today's Free Search Limit Reached!</span>
+                    </span>
+                    <p>${customMsg || `Today's ${data.daily_limit} RTO searches limit has been exhausted.`}</p>
+                </div>
+            `;
+        }
+
+        body.innerHTML = `
+            ${warningBanner}
+            <div class="space-y-2 text-xs">
+                <div class="flex justify-between items-center bg-slate-800 p-2.5 rounded-xl border border-slate-700">
+                    <span class="text-slate-300 font-medium">Daily Limit (2 Keys Combined):</span>
+                    <span class="font-mono font-bold text-amber-300">${data.used_today} / ${data.daily_limit} Used (${data.remaining_today} Left)</span>
+                </div>
+                <div class="flex justify-between items-center bg-slate-800 p-2.5 rounded-xl border border-slate-700">
+                    <span class="text-slate-300 font-medium">Monthly Limit (2 Keys Combined):</span>
+                    <span class="font-mono font-bold text-indigo-300">${data.used_month} / ${data.monthly_limit} Used (${data.remaining_month} Pending)</span>
+                </div>
+                <div class="flex justify-between items-center bg-slate-800 p-2.5 rounded-xl border border-slate-700">
+                    <span class="text-slate-300 font-medium">Daily Limit Reset In:</span>
+                    <span class="font-mono font-bold text-emerald-400">⏱️ ${data.hours_until_reset} hours</span>
+                </div>
+            </div>
+            <p class="text-[11px] text-slate-400 text-center pt-1">💡 Note: Daily 5 free API searches renew automatically every 24 hours at midnight!</p>
+        `;
+
+        modal.classList.remove('hidden');
+    } catch(e){}
+}
+
+function closeApiLimitModal() {
+    const modal = document.getElementById('api-limit-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+// Call limit badge update on load
+document.addEventListener('DOMContentLoaded', () => {
+    updateApiLimitBadge();
+});

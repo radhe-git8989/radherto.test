@@ -405,8 +405,59 @@ app.get('/api/challan/check', async (req, res) => {
 });
 
 // ============================================================
-// 7. AUTO-FETCH RTO VEHICLE DETAILS & DATES API
+// 7. AUTO-FETCH RTO VEHICLE DETAILS & LIMIT TRACKER API
 // ============================================================
+const RAPIDAPI_KEYS = [
+    { key: process.env.RAPIDAPI_KEY1 || 'c942c0ffc7mshac48052d7b7c8c2p12531djsn7b3f10c8af85', host: 'vehicle-rc-details-india.p.rapidapi.com', dailyLimit: 5, monthlyLimit: 150 },
+    { key: process.env.RAPIDAPI_KEY2 || 'c942c0ffc7mshac48052d7b7c8c2p12531djsn7b3f10c8af85', host: 'indian-vehicle-details.p.rapidapi.com', dailyLimit: 2, monthlyLimit: 40 }
+];
+
+let apiUsage = {
+    date: new Date().toISOString().split('T')[0],
+    month: new Date().toISOString().substring(0, 7),
+    usedToday: 0,
+    usedMonth: 0,
+    dailyLimit: 7, // 5 + 2
+    monthlyLimit: 190 // 150 + 40
+};
+
+function checkAndResetUsage() {
+    const today = new Date().toISOString().split('T')[0];
+    const currentMonth = new Date().toISOString().substring(0, 7);
+
+    if (apiUsage.date !== today) {
+        apiUsage.date = today;
+        apiUsage.usedToday = 0;
+    }
+    if (apiUsage.month !== currentMonth) {
+        apiUsage.month = currentMonth;
+        apiUsage.usedMonth = 0;
+    }
+}
+
+// Get RTO API limit status
+app.get('/api/rto/limit-status', (req, res) => {
+    checkAndResetUsage();
+    const now = new Date();
+    const nextMidnight = new Date();
+    nextMidnight.setHours(24, 0, 0, 0);
+    const hoursLeft = ((nextMidnight - now) / (1000 * 60 * 60)).toFixed(1);
+
+    const remainingToday = Math.max(0, apiUsage.dailyLimit - apiUsage.usedToday);
+    const remainingMonth = Math.max(0, apiUsage.monthlyLimit - apiUsage.usedMonth);
+
+    res.json({
+        success: true,
+        daily_limit: apiUsage.dailyLimit,
+        used_today: apiUsage.usedToday,
+        remaining_today: remainingToday,
+        monthly_limit: apiUsage.monthlyLimit,
+        used_month: apiUsage.usedMonth,
+        remaining_month: remainingMonth,
+        hours_until_reset: parseFloat(hoursLeft)
+    });
+});
+
 app.get('/api/rto/fetch-vehicle', async (req, res) => {
     try {
         const { vehicle_number } = req.query;
@@ -414,6 +465,7 @@ app.get('/api/rto/fetch-vehicle', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Vehicle number is required' });
         }
 
+        checkAndResetUsage();
         const cleanNo = vehicle_number.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 
         // 1. Check if vehicle already exists in DB
@@ -432,18 +484,94 @@ app.get('/api/rto/fetch-vehicle', async (req, res) => {
             });
         }
 
-        // 2. Return empty dates if not existing in DB so user enters real dates manually
+        // 2. Check Daily Limit
+        const remainingToday = apiUsage.dailyLimit - apiUsage.usedToday;
+        const now = new Date();
+        const nextMidnight = new Date();
+        nextMidnight.setHours(24, 0, 0, 0);
+        const hoursLeft = ((nextMidnight - now) / (1000 * 60 * 60)).toFixed(1);
+
+        if (remainingToday <= 0) {
+            const remainingMonth = Math.max(0, apiUsage.monthlyLimit - apiUsage.usedMonth);
+            return res.json({
+                success: false,
+                limit_reached: true,
+                error: `Today's RTO API search limit reached (${apiUsage.usedToday}/${apiUsage.dailyLimit} used)!`,
+                message: `⚠️ Today's 7 RTO searches limit has been exhausted. 5 free searches will renew in ${hoursLeft} hours. Remaining monthly balance: ${remainingMonth} searches.`,
+                remaining_today: 0,
+                remaining_month: remainingMonth,
+                hours_until_reset: parseFloat(hoursLeft)
+            });
+        }
+
+        // Increment API Usage
+        apiUsage.usedToday++;
+        apiUsage.usedMonth++;
+
+        // 3. Attempt RapidAPI Real RC Fetch
+        const https = require('https');
+        let fetchedData = null;
+
+        for (const apiObj of RAPIDAPI_KEYS) {
+            try {
+                fetchedData = await new Promise((resolve) => {
+                    const reqOptions = {
+                        hostname: apiObj.host,
+                        path: `/?vehicle_number=${cleanNo}`,
+                        method: 'GET',
+                        headers: {
+                            'X-RapidAPI-Key': apiObj.key,
+                            'X-RapidAPI-Host': apiObj.host
+                        },
+                        timeout: 5000
+                    };
+                    const r = https.request(reqOptions, (response) => {
+                        let body = '';
+                        response.on('data', chunk => body += chunk);
+                        response.on('end', () => {
+                            try {
+                                const parsed = JSON.parse(body);
+                                resolve(parsed);
+                            } catch(e) { resolve(null); }
+                        });
+                    });
+                    r.on('error', () => resolve(null));
+                    r.on('timeout', () => { r.destroy(); resolve(null); });
+                    r.end();
+                });
+                if (fetchedData && fetchedData.success) break;
+            } catch(e) {}
+        }
+
         let vehicleType = req.query.vehicle_type || 'Car';
+        let pucExpiry = null;
+        let insuranceExpiry = null;
+        let fitnessExpiry = null;
+        let taxExpiry = null;
+
+        if (fetchedData) {
+            pucExpiry = formatDate(fetchedData.puc_expiry || fetchedData.puc_upto);
+            insuranceExpiry = formatDate(fetchedData.insurance_expiry || fetchedData.insurance_upto);
+            fitnessExpiry = formatDate(fetchedData.fitness_expiry || fetchedData.fitness_upto);
+            taxExpiry = formatDate(fetchedData.tax_expiry || fetchedData.tax_upto);
+            if (fetchedData.vehicle_type) vehicleType = fetchedData.vehicle_type;
+        }
 
         res.json({
             success: true,
             vehicle_number: vehicle_number.toUpperCase(),
             vehicle_type: vehicleType,
-            puc_expiry: null,
-            insurance_expiry: null,
-            fitness_expiry: null,
-            tax_expiry: null,
-            is_existing: false
+            puc_expiry: pucExpiry,
+            insurance_expiry: insuranceExpiry,
+            fitness_expiry: fitnessExpiry,
+            tax_expiry: taxExpiry,
+            is_existing: false,
+            api_status: {
+                used_today: apiUsage.usedToday,
+                remaining_today: Math.max(0, apiUsage.dailyLimit - apiUsage.usedToday),
+                remaining_month: Math.max(0, apiUsage.monthlyLimit - apiUsage.usedMonth),
+                hours_until_reset: parseFloat(hoursLeft)
+            }
         });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
