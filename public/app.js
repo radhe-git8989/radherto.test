@@ -787,13 +787,17 @@ async function autoFetchRTODates() {
         }
 
         if (data.success) {
-            // Fill document dates without overriding user selected Vehicle Type
-            if (data.puc_expiry) document.getElementById('veh-puc').value = data.puc_expiry;
-            if (data.insurance_expiry) document.getElementById('veh-insurance').value = data.insurance_expiry;
-            if (data.fitness_expiry) document.getElementById('veh-fitness').value = data.fitness_expiry;
-            if (data.tax_expiry) document.getElementById('veh-tax').value = data.tax_expiry;
+            let filledCount = 0;
+            if (data.puc_expiry) { document.getElementById('veh-puc').value = data.puc_expiry; filledCount++; }
+            if (data.insurance_expiry) { document.getElementById('veh-insurance').value = data.insurance_expiry; filledCount++; }
+            if (data.fitness_expiry) { document.getElementById('veh-fitness').value = data.fitness_expiry; filledCount++; }
+            if (data.tax_expiry) { document.getElementById('veh-tax').value = data.tax_expiry; filledCount++; }
 
-            showToast(`RTO dates for ${vehicleNumber} auto-filled!`, 'success');
+            if (filledCount > 0) {
+                showToast(`Saved RTO dates for ${vehicleNumber} loaded!`, 'success');
+            } else {
+                showToast(`New vehicle! Please select exact expiry dates below.`, 'info');
+            }
             updateApiLimitBadge();
         } else {
             showToast(data.error || 'Failed to fetch RTO details', 'error');
