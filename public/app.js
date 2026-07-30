@@ -39,7 +39,8 @@ function handleAdminLogin(e) {
                 phone: foundUser.phone, 
                 loggedInAt: new Date().toISOString() 
             };
-            localStorage.setItem('rto_admin_session', JSON.stringify(sessionData));
+            sessionStorage.setItem('rto_admin_session', JSON.stringify(sessionData));
+            localStorage.removeItem('rto_admin_session'); // clear old persistent storage
 
             showToast(`Login successful! Welcome, ${foundUser.name} 👋`, 'success');
             btn.disabled = false;
@@ -55,7 +56,8 @@ function handleAdminLogin(e) {
 }
 
 function checkAdminSession() {
-    const session = localStorage.getItem('rto_admin_session');
+    localStorage.removeItem('rto_admin_session'); // wipe old localStorage
+    const session = sessionStorage.getItem('rto_admin_session');
     if (session) {
         try {
             const data = JSON.parse(session);
@@ -77,6 +79,18 @@ function showAppPortal() {
     document.getElementById('view-login').classList.add('hidden');
     document.getElementById('app-portal').classList.remove('hidden');
 
+    // Update logged-in user label & avatar
+    const session = sessionStorage.getItem('rto_admin_session');
+    if (session) {
+        try {
+            const data = JSON.parse(session);
+            const userLabel = document.getElementById('admin-user-label');
+            const userAvatar = document.getElementById('admin-user-avatar');
+            if (userLabel) userLabel.textContent = `${data.name || data.username} (${data.phone || ''})`;
+            if (userAvatar) userAvatar.textContent = (data.name || data.username).charAt(0).toUpperCase();
+        } catch(e){}
+    }
+
     loadDashboardStats();
     loadUpcomingExpiriesAlerts();
     loadCustomers();
@@ -84,6 +98,7 @@ function showAppPortal() {
 }
 
 function handleAdminLogout() {
+    sessionStorage.removeItem('rto_admin_session');
     localStorage.removeItem('rto_admin_session');
     showToast('Successfully logged out.', 'info');
 
@@ -221,7 +236,7 @@ function sendWhatsAppDirect(mobile, name, vehicle, docType, expiry, daysLeft) {
     // Get logged-in admin's phone number & name
     let adminPhone = '9824582291';
     let adminName = 'Radhe RTO Services';
-    const session = localStorage.getItem('rto_admin_session');
+    const session = sessionStorage.getItem('rto_admin_session');
     if (session) {
         try {
             const data = JSON.parse(session);
