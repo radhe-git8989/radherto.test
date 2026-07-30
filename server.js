@@ -465,7 +465,6 @@ app.get('/api/rto/fetch-vehicle', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Vehicle number is required' });
         }
 
-        checkAndResetUsage();
         const cleanNo = vehicle_number.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 
         // 1. Check if vehicle already exists in DB
@@ -484,33 +483,18 @@ app.get('/api/rto/fetch-vehicle', async (req, res) => {
             });
         }
 
-        // Increment API Usage counter
-        apiUsage.usedToday++;
-        apiUsage.usedMonth++;
-
-        // 2. Fetch/Calculate RTO Expiry Dates
-        const now = new Date();
-        const pucDate = new Date(now); pucDate.setMonth(pucDate.getMonth() + 6);
-        const insDate = new Date(now); insDate.setFullYear(insDate.getFullYear() + 1);
-        const fitDate = new Date(now); fitDate.setFullYear(fitDate.getFullYear() + 15);
-        const taxDate = new Date(now); taxDate.setFullYear(taxDate.getFullYear() + 15);
-
+        // 2. Return clean empty dates for manual entry so no fake dates are ever shown
         let vehicleType = req.query.vehicle_type || 'Car';
 
         res.json({
             success: true,
             vehicle_number: vehicle_number.toUpperCase(),
             vehicle_type: vehicleType,
-            puc_expiry: formatDate(pucDate),
-            insurance_expiry: formatDate(insDate),
-            fitness_expiry: formatDate(fitDate),
-            tax_expiry: formatDate(taxDate),
-            is_existing: false,
-            api_status: {
-                used_today: apiUsage.usedToday,
-                remaining_today: Math.max(0, apiUsage.dailyLimit - apiUsage.usedToday),
-                remaining_month: Math.max(0, apiUsage.monthlyLimit - apiUsage.usedMonth)
-            }
+            puc_expiry: null,
+            insurance_expiry: null,
+            fitness_expiry: null,
+            tax_expiry: null,
+            is_existing: false
         });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
