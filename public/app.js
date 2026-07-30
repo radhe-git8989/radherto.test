@@ -5,18 +5,24 @@
 const API_BASE = '/api';
 let allCustomersCache = [];
 
+// Configured Admin Users (Add or edit login users & their WhatsApp numbers here)
+const ADMIN_USERS = [
+    { username: 'ravi', password: '1234', name: 'Ravi Nakum', phone: '9824582291' },
+    { username: 'jignesh', password: '1234', name: 'Jignesh Chauhan', phone: '6351839895' }
+];
+
 // Initialize Dashboard & Authentication on page load
 document.addEventListener('DOMContentLoaded', () => {
     checkAdminSession();
 });
 
 // ============================================================
-// 0. ADMIN AUTHENTICATION (Username: ravi | Password: 1234)
+// 0. ADMIN AUTHENTICATION (Multi-User Support)
 // ============================================================
 
 function handleAdminLogin(e) {
     e.preventDefault();
-    const user = document.getElementById('login-username').value.trim();
+    const user = document.getElementById('login-username').value.trim().toLowerCase();
     const pass = document.getElementById('login-password').value;
 
     const btn = document.getElementById('login-submit-btn');
@@ -24,17 +30,24 @@ function handleAdminLogin(e) {
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Authenticating...</span>`;
 
     setTimeout(() => {
-        if (user.toLowerCase() === 'ravi' && pass === '1234') {
-            const sessionData = { username: 'ravi', loggedInAt: new Date().toISOString() };
+        const foundUser = ADMIN_USERS.find(u => u.username.toLowerCase() === user && u.password === pass);
+
+        if (foundUser) {
+            const sessionData = { 
+                username: foundUser.username, 
+                name: foundUser.name, 
+                phone: foundUser.phone, 
+                loggedInAt: new Date().toISOString() 
+            };
             localStorage.setItem('rto_admin_session', JSON.stringify(sessionData));
 
-            showToast('Login successful! Welcome, Ravi 👋', 'success');
+            showToast(`Login successful! Welcome, ${foundUser.name} 👋`, 'success');
             btn.disabled = false;
             btn.innerHTML = `<span>Login to Dashboard</span> <i class="fa-solid fa-arrow-right"></i>`;
 
             showAppPortal();
         } else {
-            showToast('Invalid username or password! (Username: ravi, Password: 1234)', 'error');
+            showToast('Invalid username or password!', 'error');
             btn.disabled = false;
             btn.innerHTML = `<span>Login to Dashboard</span> <i class="fa-solid fa-arrow-right"></i>`;
         }
@@ -46,7 +59,7 @@ function checkAdminSession() {
     if (session) {
         try {
             const data = JSON.parse(session);
-            if (data && data.username === 'ravi') {
+            if (data && data.username) {
                 showAppPortal();
                 return;
             }
@@ -195,7 +208,7 @@ async function loadUpcomingExpiriesAlerts() {
 // DIRECT WHATSAPP SENDER FUNCTION (Opens WhatsApp App / Web)
 // ============================================================
 function sendWhatsAppDirect(mobile, name, vehicle, docType, expiry, daysLeft) {
-    // Format mobile number with country code 91
+    // Format customer mobile number with country code 91
     let cleanMobile = mobile.replace(/\D/g, '');
     if (cleanMobile.length === 10) {
         cleanMobile = '91' + cleanMobile;
@@ -205,7 +218,19 @@ function sendWhatsAppDirect(mobile, name, vehicle, docType, expiry, daysLeft) {
         ? `has *EXPIRED* (${Math.abs(daysLeft)} days ago)` 
         : `will expire in *${daysLeft} days*`;
 
-    let message = `🚨 *Radhe RTO Services - Document Expiry Alert* 🚨\n\nDear *${name}*,\nYour vehicle *${vehicle}* document (*${docType.toUpperCase()}*) ${statusText} on *${expiry}*.\n\nPlease contact us immediately for quick & hassle-free renewal!\n\n*Radhe RTO Services*\n📞 Call / WhatsApp: +91-${cleanMobile.slice(-10)}`;
+    // Get logged-in admin's phone number & name
+    let adminPhone = '9824582291';
+    let adminName = 'Radhe RTO Services';
+    const session = localStorage.getItem('rto_admin_session');
+    if (session) {
+        try {
+            const data = JSON.parse(session);
+            if (data.phone) adminPhone = data.phone;
+            if (data.name) adminName = data.name;
+        } catch(e) {}
+    }
+
+    let message = `🚨 *Radhe RTO Services - Document Expiry Alert* 🚨\n\nDear *${name}*,\nYour vehicle *${vehicle}* document (*${docType.toUpperCase()}*) ${statusText} on *${expiry}*.\n\nPlease contact us immediately for quick & hassle-free renewal!\n\n*${adminName}*\n📞 Call / WhatsApp: +91-${adminPhone}`;
 
     let waUrl = `https://api.whatsapp.com/send?phone=${cleanMobile}&text=${encodeURIComponent(message)}`;
 
