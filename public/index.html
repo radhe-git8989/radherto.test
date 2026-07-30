@@ -389,7 +389,13 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1">Vehicle Number *</label>
-                        <input type="text" id="veh-number" required placeholder="GJ-01-AB-1234" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 uppercase focus:outline-none focus:border-purple-500">
+                        <div class="flex space-x-1.5">
+                            <input type="text" id="veh-number" required placeholder="GJ-01-AB-1234" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100 uppercase focus:outline-none focus:border-purple-500">
+                            <button type="button" onclick="autoFetchRTODates()" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs px-3 py-2.5 rounded-xl shadow transition flex items-center space-x-1 shrink-0" title="Auto-Fetch RTO Expiry Dates">
+                                <i class="fa-solid fa-bolt"></i>
+                                <span>Fetch</span>
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1">Vehicle Type</label>
