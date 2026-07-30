@@ -432,13 +432,8 @@ app.get('/api/rto/fetch-vehicle', async (req, res) => {
             });
         }
 
-        // 2. Determine vehicle type dynamically
-        let vehicleType = 'Car';
-        if (cleanNo.includes('B') || cleanNo.includes('2') || cleanNo.endsWith('0') || cleanNo.endsWith('1')) {
-            vehicleType = 'Bike';
-        } else if (cleanNo.includes('TR') || cleanNo.includes('T')) {
-            vehicleType = 'Truck';
-        }
+        // 2. Default vehicle type to Car unless specified
+        let vehicleType = req.query.vehicle_type || 'Car';
 
         // 3. Auto-calculate / fetch valid RTO dates
         const now = new Date();

@@ -781,7 +781,7 @@ async function autoFetchRTODates() {
         const data = await res.json();
 
         if (data.success) {
-            if (data.vehicle_type) document.getElementById('veh-type').value = data.vehicle_type;
+            // Fill document dates without overriding user selected Vehicle Type
             if (data.puc_expiry) document.getElementById('veh-puc').value = data.puc_expiry;
             if (data.insurance_expiry) document.getElementById('veh-insurance').value = data.insurance_expiry;
             if (data.fitness_expiry) document.getElementById('veh-fitness').value = data.fitness_expiry;
