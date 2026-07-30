@@ -247,7 +247,15 @@ app.get('/api/vehicles', async (req, res) => {
         sql += ` ORDER BY v.id DESC`;
 
         const vehicles = await query(sql, params);
-        res.json({ success: true, vehicles });
+        const formattedVehicles = vehicles.map(v => ({
+            ...v,
+            puc_expiry: formatDate(v.puc_expiry),
+            insurance_expiry: formatDate(v.insurance_expiry),
+            fitness_expiry: formatDate(v.fitness_expiry),
+            tax_expiry: formatDate(v.tax_expiry)
+        }));
+
+        res.json({ success: true, vehicles: formattedVehicles });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }

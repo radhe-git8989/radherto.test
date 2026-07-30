@@ -480,9 +480,19 @@ async function loadVehicles() {
     }
 }
 
+function cleanDateOnly(dateStr) {
+    if (!dateStr) return '';
+    const str = String(dateStr);
+    if (str.includes('T')) return str.split('T')[0];
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+    return str;
+}
+
 function formatExpiryBadge(dateStr) {
     if (!dateStr) return `<span class="text-slate-500 text-xs">N/A</span>`;
     
+    const displayDate = cleanDateOnly(dateStr);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const expDate = new Date(dateStr);
@@ -491,11 +501,11 @@ function formatExpiryBadge(dateStr) {
     const diffDays = Math.round((expDate - today) / (1000 * 3600 * 24));
     
     if (diffDays < 0) {
-        return `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs px-2 py-0.5 rounded font-mono font-bold">${dateStr} (Expired)</span>`;
+        return `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs px-2 py-0.5 rounded font-mono font-bold">${displayDate} (Expired)</span>`;
     } else if (diffDays <= 15) {
-        return `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs px-2 py-0.5 rounded font-mono font-bold">${dateStr} (${diffDays}d)</span>`;
+        return `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs px-2 py-0.5 rounded font-mono font-bold">${displayDate} (${diffDays}d)</span>`;
     } else {
-        return `<span class="text-slate-300 font-mono text-xs">${dateStr}</span>`;
+        return `<span class="text-slate-300 font-mono text-xs">${displayDate}</span>`;
     }
 }
 
