@@ -117,8 +117,15 @@ async function showAppPortal() {
     if (currentUser) {
         const userLabel = document.getElementById('admin-user-label');
         const userAvatar = document.getElementById('admin-user-avatar');
+        const headerBrand = document.getElementById('header-brand-name');
+
         if (userLabel) userLabel.textContent = currentUser.name;
         if (userAvatar) userAvatar.textContent = (currentUser.name || currentUser.username).charAt(0).toUpperCase();
+
+        if (headerBrand) {
+            const shopName = currentUser.shop_name || 'Radhe RTO Services';
+            headerBrand.innerHTML = `${escapeHtml(shopName)}`;
+        }
 
         const navUsers = document.getElementById('nav-users');
         const navReports = document.getElementById('nav-reports');
@@ -323,8 +330,35 @@ async function loadUpcomingExpiriesAlerts() {
 }
 
 // ============================================================
-// DIRECT WHATSAPP SENDER FUNCTION (Dynamic Shop Name & Owner Info)
+// LOGO LIGHTBOX ZOOM MODAL FUNCTIONS
 // ============================================================
+function openLogoZoomModal() {
+    const modal = document.getElementById('logo-modal');
+    const currentUser = getLoggedInUser();
+    const titleEl = document.getElementById('logo-zoom-title');
+    if (titleEl && currentUser) {
+        titleEl.innerText = currentUser.shop_name || 'Radhe RTO Services';
+    }
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeLogoZoomModal() {
+    const modal = document.getElementById('logo-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeLogoZoomModal();
+        closeWhatsAppModal();
+    }
+});
+
+// ============================================================
+// DIRECT WHATSAPP SENDER FUNCTION (With Options Modal)
+// ============================================================
+let currentWAPayload = null;
+
 function sendWhatsAppDirect(mobile, name, vehicle, docType, expiry, daysLeft, itemUserId, itemShopName, itemUserName, itemUserPhone) {
     let cleanMobile = mobile.replace(/\D/g, '');
     if (cleanMobile.length === 10) {
@@ -350,10 +384,47 @@ function sendWhatsAppDirect(mobile, name, vehicle, docType, expiry, daysLeft, it
 
     let message = `🚨 *${shopName} - Document Expiry Alert* 🚨\n\nDear *${name}*,\nYour vehicle *${vehicle}* document (*${docType.toUpperCase()}*) ${statusText} on *${expiry}*.\n\nPlease contact us immediately for quick & hassle-free renewal!\n\n*${senderName}*\n📞 Call / WhatsApp: +91-${cleanSenderPhone}`;
 
-    let waUrl = `https://api.whatsapp.com/send?phone=${cleanMobile}&text=${encodeURIComponent(message)}`;
+    currentWAPayload = {
+        cleanMobile,
+        messageText: message,
+        mobile,
+        name,
+        vehicle,
+        docType,
+        expiry,
+        daysLeft
+    };
+
+    const waModalMobile = document.getElementById('wa-modal-mobile');
+    const waModalCust = document.getElementById('wa-modal-cust');
+    const waModalText = document.getElementById('wa-modal-text');
+    const waModal = document.getElementById('whatsapp-modal');
+
+    if (waModalMobile) waModalMobile.innerText = `+${cleanMobile}`;
+    if (waModalCust) waModalCust.innerText = `${name} (${vehicle})`;
+    if (waModalText) waModalText.value = message;
+    if (waModal) waModal.classList.remove('hidden');
+}
+
+function closeWhatsAppModal() {
+    const waModal = document.getElementById('whatsapp-modal');
+    if (waModal) waModal.classList.add('hidden');
+}
+
+function launchWhatsApp(method = 'api') {
+    if (!currentWAPayload) return;
+    const { cleanMobile, mobile, name, vehicle, docType, expiry, daysLeft } = currentWAPayload;
+    const messageText = document.getElementById('wa-modal-text')?.value || currentWAPayload.messageText;
+    const encodedText = encodeURIComponent(messageText);
+
+    let waUrl = `https://api.whatsapp.com/send?phone=${cleanMobile}&text=${encodedText}`;
+    if (method === 'web') {
+        waUrl = `https://web.whatsapp.com/send?phone=${cleanMobile}&text=${encodedText}`;
+    }
 
     window.open(waUrl, '_blank');
     showToast(`Opening WhatsApp for ${vehicle} (${name})...`, 'success');
+    closeWhatsAppModal();
 
     // Send log to server in background
     fetch(`${API_BASE}/reminders/send-whatsapp`, {

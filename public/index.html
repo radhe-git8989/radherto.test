@@ -68,47 +68,58 @@
         <!-- TOP HEADER NAVBAR -->
         <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700/80 sticky top-0 z-40">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                <!-- Brand Logo & Name -->
-                <div class="flex items-center space-x-3">
-                    <img src="logo.png" alt="Radhe RTO Services Logo" class="h-10 w-auto object-contain rounded-lg p-0.5 bg-slate-900/50 border border-slate-700">
+                <!-- Brand Logo & Dynamic Shop Name -->
+                <div class="flex items-center space-x-3 cursor-pointer group" onclick="openLogoZoomModal()">
+                    <img src="logo.png" alt="RTO Logo" class="h-10 w-auto object-contain rounded-lg p-0.5 bg-slate-900/50 border border-slate-700 group-hover:border-indigo-400 transition" title="Click to enlarge Logo">
                     <div>
-                        <h1 class="text-lg font-bold text-white tracking-wide">Radhe <span class="text-indigo-400">RTO Services</span></h1>
-                        <p class="text-xs text-slate-400">Vehicle Expiry & Customer Portal</p>
+                        <h1 id="header-brand-name" class="text-base sm:text-lg font-bold text-white tracking-wide truncate max-w-[200px] sm:max-w-[320px]">Radhe <span class="text-indigo-400">RTO Services</span></h1>
+                        <p class="text-[11px] text-slate-400">Vehicle Expiry & Customer Portal</p>
                     </div>
                 </div>
 
                 <!-- Navigation Links -->
                 <nav class="hidden md:flex space-x-1">
-                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 bg-indigo-600 text-white shadow-md">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 bg-indigo-600 text-white shadow-md">
                         <i class="fa-solid fa-chart-pie"></i>
                         <span>Dashboard</span>
                     </button>
-                    <button onclick="switchTab('customers')" id="nav-customers" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                    <button onclick="switchTab('customers')" id="nav-customers" class="nav-btn px-3.5 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
                         <i class="fa-solid fa-users"></i>
                         <span>Customers</span>
                     </button>
-                    <button onclick="switchTab('vehicles')" id="nav-vehicles" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                    <button onclick="switchTab('vehicles')" id="nav-vehicles" class="nav-btn px-3.5 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
                         <i class="fa-solid fa-car"></i>
                         <span>Vehicles</span>
                     </button>
-                    <button onclick="switchTab('users')" id="nav-users" class="nav-btn hidden px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                    <button onclick="switchTab('users')" id="nav-users" class="nav-btn hidden px-3.5 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
                         <i class="fa-solid fa-user-gear text-amber-400"></i>
                         <span>User Management</span>
                     </button>
-                    <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn hidden px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                    <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn hidden px-3.5 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
                         <i class="fa-solid fa-chart-line text-emerald-400"></i>
                         <span>Activity & Reports</span>
                     </button>
                 </nav>
 
-                <!-- User Profile & Logout -->
-                <div class="flex items-center space-x-3">
-                    <button onclick="triggerCronJob()" class="hidden sm:flex bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg items-center space-x-1.5 shadow transition">
+                <!-- User Profile, Filter & Logout -->
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <!-- Super Admin User Filter Dropdown in Top Header -->
+                    <div id="super-admin-filter-container" class="hidden flex items-center space-x-1.5 bg-slate-900/90 border border-amber-500/40 rounded-xl px-2.5 py-1 shadow">
+                        <span class="text-xs text-amber-300 font-bold hidden lg:flex items-center space-x-1">
+                            <i class="fa-solid fa-filter"></i>
+                            <span>View User:</span>
+                        </span>
+                        <select id="global-user-filter" onchange="onUserFilterChange()" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 font-semibold focus:outline-none focus:border-amber-500">
+                            <option value="">All Users (Super Admin View)</option>
+                        </select>
+                    </div>
+
+                    <button onclick="triggerCronJob()" class="hidden lg:flex bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg items-center space-x-1 shadow transition">
                         <i class="fa-solid fa-clock-rotate-left"></i>
-                        <span>Run Cron</span>
+                        <span>Cron</span>
                     </button>
 
-                    <div class="flex items-center space-x-2 pl-3 border-l border-slate-700">
+                    <div class="flex items-center space-x-2 pl-2 border-l border-slate-700">
                         <div id="admin-user-avatar" class="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow">
                             R
                         </div>
@@ -788,6 +799,68 @@
             <button onclick="closeApiLimitModal()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">
                 Got it
             </button>
+        </div>
+    </div>
+
+    <!-- ==================== 7. LOGO LIGHTBOX ZOOM MODAL ==================== -->
+    <div id="logo-modal" onclick="closeLogoZoomModal()" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-zoom-out">
+        <div onclick="event.stopPropagation()" class="relative max-w-2xl w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col items-center justify-center text-center space-y-4">
+            <button onclick="closeLogoZoomModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl p-2 rounded-full bg-slate-800 hover:bg-slate-700 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="p-4 bg-slate-800/80 rounded-2xl border border-slate-700 w-full flex justify-center">
+                <img src="logo.png" alt="Enlarged Logo" class="max-h-[70vh] w-auto object-contain rounded-xl shadow-2xl">
+            </div>
+            <div>
+                <h3 id="logo-zoom-title" class="text-xl font-bold text-white tracking-wide">Radhe RTO Services</h3>
+                <p class="text-xs text-slate-400 mt-1">Vehicle Expiry & Customer Portal Official Logo</p>
+            </div>
+            <p class="text-xs text-slate-500 italic">Click anywhere outside or press 'Esc' to close</p>
+        </div>
+    </div>
+
+    <!-- ==================== 8. WHATSAPP SENDER OPTIONS MODAL ==================== -->
+    <div id="whatsapp-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-emerald-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 relative">
+            <button onclick="closeWhatsAppModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xl shadow">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">Send WhatsApp Alert</h3>
+                    <p class="text-xs text-slate-400">Choose preferred link method or custom message</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 space-y-3">
+                <div class="flex items-center justify-between text-xs text-slate-300 border-b border-slate-800 pb-2">
+                    <span>Recipient Mobile:</span>
+                    <span id="wa-modal-mobile" class="font-mono font-bold text-emerald-400">+91 9824582291</span>
+                </div>
+                <div class="flex items-center justify-between text-xs text-slate-300 border-b border-slate-800 pb-2">
+                    <span>Customer Name:</span>
+                    <span id="wa-modal-cust" class="font-bold text-white">Ramesh Patel</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Message Preview:</label>
+                    <textarea id="wa-modal-text" rows="5" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 font-mono focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button id="wa-btn-api" onclick="launchWhatsApp('api')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center space-x-2 shadow transition">
+                    <i class="fa-brands fa-whatsapp text-base"></i>
+                    <span>Direct API Link (Recommended)</span>
+                </button>
+                <button id="wa-btn-web" onclick="launchWhatsApp('web')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center space-x-2 shadow transition">
+                    <i class="fa-solid fa-laptop text-base"></i>
+                    <span>WhatsApp Web Portal</span>
+                </button>
+            </div>
         </div>
     </div>
 
