@@ -270,6 +270,19 @@ async function loadDashboardStats() {
     }
 }
 
+function openTotalCustomersFromCard() {
+    const currentUser = getLoggedInUser();
+    const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'ravi');
+
+    if (isAdmin) {
+        const globalFilter = document.getElementById('global-user-filter');
+        if (globalFilter) globalFilter.value = '';
+
+        switchTab('customers');
+        loadCustomers();
+    }
+}
+
 async function loadUpcomingExpiriesAlerts() {
     const daysLimit = document.getElementById('alert-days-filter').value || 15;
     const tbody = document.getElementById('alerts-table-body');
