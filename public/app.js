@@ -697,6 +697,8 @@ function onUserFilterChange() {
     loadVehicles();
 }
 
+let allUsersCache = [];
+
 async function loadUsers() {
     const tbody = document.getElementById('users-table-body');
     if (!tbody) return;
@@ -708,6 +710,7 @@ async function loadUsers() {
         const data = await res.json();
 
         if (data.success) {
+            allUsersCache = data.users;
             if (data.users.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">No users found. Click 'Add New System User' to create one.</td></tr>`;
                 return;
@@ -719,9 +722,18 @@ async function loadUsers() {
                     ? `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs px-2.5 py-1 rounded-full font-bold">Super Admin</span>`
                     : `<span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs px-2.5 py-1 rounded-full font-semibold">Normal User</span>`;
 
-                let deleteBtn = u.username === 'ravi' 
-                    ? `<span class="text-xs text-slate-500 font-mono">System Owner</span>`
-                    : `<button onclick="deleteSystemUser(${u.id}, '${escapeHtml(u.username)}')" class="text-slate-400 hover:text-rose-400 transition" title="Delete User"><i class="fa-solid fa-trash-can"></i> Delete</button>`;
+                let actionBtns = `
+                    <div class="flex items-center justify-center space-x-2">
+                        <button onclick="editSystemUser(${u.id})" class="bg-slate-700 hover:bg-slate-600 text-amber-300 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow transition flex items-center space-x-1" title="Edit User Credentials">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>Edit</span>
+                        </button>
+                        ${u.username === 'ravi' 
+                            ? `<span class="text-xs text-slate-500 font-mono px-2 py-1">Owner</span>`
+                            : `<button onclick="deleteSystemUser(${u.id}, '${escapeHtml(u.username)}')" class="text-slate-400 hover:text-rose-400 transition p-1" title="Delete User"><i class="fa-solid fa-trash-can"></i></button>`
+                        }
+                    </div>
+                `;
 
                 html += `
                     <tr class="hover:bg-slate-700/40 transition">
@@ -730,7 +742,7 @@ async function loadUsers() {
                         <td class="px-6 py-4 font-semibold text-slate-200">${escapeHtml(u.name)}</td>
                         <td class="px-6 py-4 font-mono text-xs text-indigo-300">${escapeHtml(u.phone || '-')}</td>
                         <td class="px-6 py-4">${roleBadge}</td>
-                        <td class="px-6 py-4 text-center">${deleteBtn}</td>
+                        <td class="px-6 py-4 text-center">${actionBtns}</td>
                     </tr>
                 `;
             });
@@ -741,8 +753,37 @@ async function loadUsers() {
     }
 }
 
-function openUserModal() {
+function openUserModal(id = null) {
     document.getElementById('user-form').reset();
+    document.getElementById('edit-user-id').value = '';
+    document.getElementById('user-modal-title').innerText = 'Add New System User';
+    document.getElementById('new-user-pass').required = true;
+    document.getElementById('user-pass-label').innerText = 'Password *';
+    document.getElementById('new-user-pass').placeholder = '••••••••';
+    document.getElementById('user-modal-submit-btn').innerText = 'Create User';
+    document.getElementById('user-modal').classList.remove('hidden');
+}
+
+function editSystemUser(id) {
+    const user = allUsersCache.find(u => u.id === id);
+    if (!user) {
+        showToast('User not found!', 'error');
+        return;
+    }
+
+    document.getElementById('user-form').reset();
+    document.getElementById('edit-user-id').value = user.id;
+    document.getElementById('new-user-name').value = user.username;
+    document.getElementById('new-user-fullname').value = user.name;
+    document.getElementById('new-user-phone').value = user.phone || '';
+    document.getElementById('new-user-role').value = user.role || 'user';
+    
+    document.getElementById('user-modal-title').innerText = `Edit User credentials (@${user.username})`;
+    document.getElementById('new-user-pass').required = false;
+    document.getElementById('user-pass-label').innerText = 'Password (Leave blank to keep current password)';
+    document.getElementById('new-user-pass').placeholder = 'Enter new password if changing';
+    document.getElementById('user-modal-submit-btn').innerText = 'Update User';
+
     document.getElementById('user-modal').classList.remove('hidden');
 }
 
@@ -752,15 +793,19 @@ function closeUserModal() {
 
 async function saveSystemUser(e) {
     e.preventDefault();
+    const id = document.getElementById('edit-user-id').value;
     const username = document.getElementById('new-user-name').value.trim().toLowerCase();
     const password = document.getElementById('new-user-pass').value;
     const name = document.getElementById('new-user-fullname').value.trim();
     const phone = document.getElementById('new-user-phone').value.trim();
     const role = document.getElementById('new-user-role').value;
 
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `${API_BASE}/users/${id}` : `${API_BASE}/users`;
+
     try {
-        const res = await fetch(`${API_BASE}/users`, {
-            method: 'POST',
+        const res = await fetch(url, {
+            method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password, name, phone, role })
         });
@@ -772,7 +817,7 @@ async function saveSystemUser(e) {
             loadUsers();
             loadSuperAdminUserFilter();
         } else {
-            showToast(data.error || 'Failed to create user', 'error');
+            showToast(data.error || 'Failed to save user', 'error');
         }
     } catch(err) {
         showToast(err.message, 'error');

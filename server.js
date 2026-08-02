@@ -92,6 +92,51 @@ app.post('/api/users', async (req, res) => {
     }
 });
 
+// Update User ID, Password, Name, Phone, Role (Super Admin only)
+app.put('/api/users/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { username, password, name, phone, role } = req.body;
+
+        if (!username || !name) {
+            return res.status(400).json({ success: false, error: 'Username and name are required' });
+        }
+
+        const oldUsers = await query('SELECT username FROM users WHERE id = ?', [id]);
+        if (oldUsers.length === 0) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        const oldUsername = oldUsers[0].username;
+        const newUsername = username.toLowerCase().trim();
+
+        if (password && password.trim()) {
+            await query(
+                'UPDATE users SET username=?, password=?, name=?, phone=?, role=? WHERE id=?',
+                [newUsername, password, name, phone || null, role || 'user', id]
+            );
+        } else {
+            await query(
+                'UPDATE users SET username=?, name=?, phone=?, role=? WHERE id=?',
+                [newUsername, name, phone || null, role || 'user', id]
+            );
+        }
+
+        // If username was updated, update linked customers & vehicles
+        if (oldUsername !== newUsername) {
+            await query('UPDATE customers SET user_id=? WHERE user_id=?', [newUsername, oldUsername]);
+            await query('UPDATE vehicles SET user_id=? WHERE user_id=?', [newUsername, oldUsername]);
+        }
+
+        res.json({ success: true, message: `User '@${newUsername}' updated successfully!` });
+    } catch (err) {
+        if (err.message && (err.message.includes('UNIQUE') || err.message.includes('unique'))) {
+            return res.status(400).json({ success: false, error: 'Username already exists! Choose another username.' });
+        }
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // Delete User (Super Admin only)
 app.delete('/api/users/:id', async (req, res) => {
     try {
