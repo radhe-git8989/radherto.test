@@ -155,7 +155,16 @@ app.put('/api/users/:id', async (req, res) => {
 app.delete('/api/users/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        await query('DELETE FROM users WHERE id=?', [id]);
+        const targetUsers = await query('SELECT username FROM users WHERE id=?', [id]);
+        if (targetUsers.length > 0) {
+            const u = targetUsers[0];
+            if (u.username === 'ravi') {
+                return res.status(400).json({ success: false, error: 'Cannot delete System Owner (ravi)' });
+            }
+            await query('DELETE FROM users WHERE id=?', [id]);
+            logActivity('ravi', 'DELETE_USER', null, null, `Permanently deleted user @${u.username}`);
+            return res.json({ success: true, message: `User '@${u.username}' deleted permanently.` });
+        }
         res.json({ success: true, message: 'User deleted successfully' });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
