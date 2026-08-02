@@ -135,15 +135,24 @@ async function initMySQLTables() {
             console.log("🌱 Seeding sample data into MySQL database...");
             await pool.query(`INSERT INTO customers (id, user_id, name, mobile_number, email, address) VALUES
                 (1, 'ravi', 'Ramesh Patel', '9876543210', 'ramesh@example.com', 'Ahmedabad, Gujarat'),
-                (2, 'raju', 'Suresh Sharma', '9823456789', 'suresh@example.com', 'Surat, Gujarat'),
-                (3, 'ashvin', 'Priya Shah', '9912345678', 'priya@example.com', 'Vadodara, Gujarat');
+                (2, 'ravi', 'Kiran Shah', '9825011111', 'kiran@example.com', 'Ahmedabad, Gujarat'),
+                (3, 'raju', 'Suresh Sharma', '9823456789', 'suresh@example.com', 'Surat, Gujarat'),
+                (4, 'raju', 'Mahesh Varma', '9879022222', 'mahesh@example.com', 'Surat, Gujarat'),
+                (5, 'ashvin', 'Priya Shah', '9912345678', 'priya@example.com', 'Vadodara, Gujarat'),
+                (6, 'ashvin', 'Dinesh Mehta', '9898033333', 'dinesh@example.com', 'Vadodara, Gujarat'),
+                (7, 'jignesh', 'Vijay Rathod', '9712044444', 'vijay@example.com', 'Rajkot, Gujarat'),
+                (8, 'jignesh', 'Bhavesh Joshi', '9601055555', 'bhavesh@example.com', 'Rajkot, Gujarat');
             `);
 
             await pool.query(`INSERT INTO vehicles (id, customer_id, user_id, vehicle_number, vehicle_type, puc_expiry, insurance_expiry, fitness_expiry, tax_expiry) VALUES
                 (1, 1, 'ravi', 'GJ-01-AB-1234', 'Car', '${addDays(5)}', '${addDays(10)}', '${addDays(90)}', '${addDays(180)}'),
-                (2, 1, 'ravi', 'GJ-01-XY-9876', 'Bike', '${addDays(2)}', '${addDays(-3)}', '${addDays(120)}', '${addDays(200)}'),
-                (3, 2, 'raju', 'GJ-05-CD-5678', 'Truck', '${addDays(12)}', '${addDays(14)}', '${addDays(8)}', '${addDays(45)}'),
-                (4, 3, 'ashvin', 'GJ-06-EF-4321', 'Car', '${addDays(25)}', '${addDays(2)}', '${addDays(60)}', '${addDays(150)}');
+                (2, 2, 'ravi', 'GJ-01-XY-9876', 'Bike', '${addDays(2)}', '${addDays(-3)}', '${addDays(120)}', '${addDays(200)}'),
+                (3, 3, 'raju', 'GJ-05-CD-5678', 'Truck', '${addDays(12)}', '${addDays(14)}', '${addDays(8)}', '${addDays(45)}'),
+                (4, 4, 'raju', 'GJ-05-ZZ-1122', 'Auto', '${addDays(1)}', '${addDays(7)}', '${addDays(30)}', '${addDays(60)}'),
+                (5, 5, 'ashvin', 'GJ-06-EF-4321', 'Car', '${addDays(25)}', '${addDays(2)}', '${addDays(60)}', '${addDays(150)}'),
+                (6, 6, 'ashvin', 'GJ-06-AA-5566', 'Tractor', '${addDays(-5)}', '${addDays(15)}', '${addDays(40)}', '${addDays(100)}'),
+                (7, 7, 'jignesh', 'GJ-03-GH-7788', 'Car', '${addDays(3)}', '${addDays(18)}', '${addDays(75)}', '${addDays(160)}'),
+                (8, 8, 'jignesh', 'GJ-03-MM-9900', 'Bike', '${addDays(8)}', '${addDays(-1)}', '${addDays(50)}', '${addDays(110)}');
             `);
         }
     } catch(err) {
@@ -263,15 +272,24 @@ async function initDB() {
                         console.log("🌱 Seeding sample data into SQLite database...");
                         sqliteDb.run(`INSERT INTO customers (id, user_id, name, mobile_number, email, address) VALUES
                             (1, 'ravi', 'Ramesh Patel', '9876543210', 'ramesh@example.com', 'Ahmedabad, Gujarat'),
-                            (2, 'raju', 'Suresh Sharma', '9823456789', 'suresh@example.com', 'Surat, Gujarat'),
-                            (3, 'ashvin', 'Priya Shah', '9912345678', 'priya@example.com', 'Vadodara, Gujarat');
+                            (2, 'ravi', 'Kiran Shah', '9825011111', 'kiran@example.com', 'Ahmedabad, Gujarat'),
+                            (3, 'raju', 'Suresh Sharma', '9823456789', 'suresh@example.com', 'Surat, Gujarat'),
+                            (4, 'raju', 'Mahesh Varma', '9879022222', 'mahesh@example.com', 'Surat, Gujarat'),
+                            (5, 'ashvin', 'Priya Shah', '9912345678', 'priya@example.com', 'Vadodara, Gujarat'),
+                            (6, 'ashvin', 'Dinesh Mehta', '9898033333', 'dinesh@example.com', 'Vadodara, Gujarat'),
+                            (7, 'jignesh', 'Vijay Rathod', '9712044444', 'vijay@example.com', 'Rajkot, Gujarat'),
+                            (8, 'jignesh', 'Bhavesh Joshi', '9601055555', 'bhavesh@example.com', 'Rajkot, Gujarat');
                         `);
 
                         sqliteDb.run(`INSERT INTO vehicles (id, customer_id, user_id, vehicle_number, vehicle_type, puc_expiry, insurance_expiry, fitness_expiry, tax_expiry) VALUES
                             (1, 1, 'ravi', 'GJ-01-AB-1234', 'Car', '${addDays(5)}', '${addDays(10)}', '${addDays(90)}', '${addDays(180)}'),
-                            (2, 1, 'ravi', 'GJ-01-XY-9876', 'Bike', '${addDays(2)}', '${addDays(-3)}', '${addDays(120)}', '${addDays(200)}'),
-                            (3, 2, 'raju', 'GJ-05-CD-5678', 'Truck', '${addDays(12)}', '${addDays(14)}', '${addDays(8)}', '${addDays(45)}'),
-                            (4, 3, 'ashvin', 'GJ-06-EF-4321', 'Car', '${addDays(25)}', '${addDays(2)}', '${addDays(60)}', '${addDays(150)}');
+                            (2, 2, 'ravi', 'GJ-01-XY-9876', 'Bike', '${addDays(2)}', '${addDays(-3)}', '${addDays(120)}', '${addDays(200)}'),
+                            (3, 3, 'raju', 'GJ-05-CD-5678', 'Truck', '${addDays(12)}', '${addDays(14)}', '${addDays(8)}', '${addDays(45)}'),
+                            (4, 4, 'raju', 'GJ-05-ZZ-1122', 'Auto', '${addDays(1)}', '${addDays(7)}', '${addDays(30)}', '${addDays(60)}'),
+                            (5, 5, 'ashvin', 'GJ-06-EF-4321', 'Car', '${addDays(25)}', '${addDays(2)}', '${addDays(60)}', '${addDays(150)}'),
+                            (6, 6, 'ashvin', 'GJ-06-AA-5566', 'Tractor', '${addDays(-5)}', '${addDays(15)}', '${addDays(40)}', '${addDays(100)}'),
+                            (7, 7, 'jignesh', 'GJ-03-GH-7788', 'Car', '${addDays(3)}', '${addDays(18)}', '${addDays(75)}', '${addDays(160)}'),
+                            (8, 8, 'jignesh', 'GJ-03-MM-9900', 'Bike', '${addDays(8)}', '${addDays(-1)}', '${addDays(50)}', '${addDays(110)}');
                         `);
                     }
                     resolve();
