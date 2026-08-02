@@ -429,6 +429,15 @@ app.put('/api/customers/:id', async (req, res) => {
 app.delete('/api/customers/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        const { user_id } = req.query;
+
+        const custs = await query('SELECT name, mobile_number, user_id FROM customers WHERE id=?', [id]);
+        if (custs.length > 0) {
+            const c = custs[0];
+            const performingUser = user_id || req.body.user_id || c.user_id || 'ravi';
+            logActivity(performingUser, 'DELETE_CUSTOMER', c.name, null, `Deleted customer entry: ${c.name} (${c.mobile_number})`);
+        }
+
         await query('DELETE FROM customers WHERE id=?', [id]);
         res.json({ success: true, message: 'Customer deleted successfully' });
     } catch (err) {
@@ -595,6 +604,21 @@ app.post('/api/vehicles/:id/renew', async (req, res) => {
 app.delete('/api/vehicles/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        const { user_id } = req.query;
+
+        const vehs = await query(`
+            SELECT v.vehicle_number, v.user_id, c.name AS customer_name 
+            FROM vehicles v 
+            LEFT JOIN customers c ON v.customer_id = c.id 
+            WHERE v.id=?
+        `, [id]);
+
+        if (vehs.length > 0) {
+            const v = vehs[0];
+            const performingUser = user_id || req.body.user_id || v.user_id || 'ravi';
+            logActivity(performingUser, 'DELETE_VEHICLE', v.customer_name || 'N/A', v.vehicle_number, `Deleted vehicle record: ${v.vehicle_number}`);
+        }
+
         await query('DELETE FROM vehicles WHERE id=?', [id]);
         res.json({ success: true, message: 'Vehicle deleted successfully' });
     } catch (err) {

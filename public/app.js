@@ -644,7 +644,7 @@ function editCustomer(id) {
 async function deleteCustomer(id) {
     if (!confirm('Are you sure you want to delete this customer? All linked vehicles will also be deleted.')) return;
     try {
-        const res = await fetch(`${API_BASE}/customers/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/customers/${id}?${getUserQueryParams()}`, { method: 'DELETE' });
         const data = await res.json();
         if (data.success) {
             showToast(data.message, 'info');
@@ -858,7 +858,7 @@ function editVehicle(id) {
 async function deleteVehicle(id) {
     if (!confirm('Are you sure you want to delete this vehicle record?')) return;
     try {
-        const res = await fetch(`${API_BASE}/vehicles/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/vehicles/${id}?${getUserQueryParams()}`, { method: 'DELETE' });
         const data = await res.json();
         if (data.success) {
             showToast(data.message, 'info');
@@ -1113,6 +1113,10 @@ async function loadReports() {
                     actionBadge = `<span class="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs px-2.5 py-1 rounded-md font-semibold"><i class="fa-solid fa-car mr-1"></i> New Vehicle</span>`;
                 } else if (l.action_type === 'RENEW_DOCUMENT') {
                     actionBadge = `<span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs px-2.5 py-1 rounded-md font-bold"><i class="fa-solid fa-arrows-rotate mr-1"></i> Renewed Docs</span>`;
+                } else if (l.action_type === 'DELETE_CUSTOMER') {
+                    actionBadge = `<span class="bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs px-2.5 py-1 rounded-md font-bold"><i class="fa-solid fa-user-minus mr-1"></i> Deleted Customer</span>`;
+                } else if (l.action_type === 'DELETE_VEHICLE') {
+                    actionBadge = `<span class="bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs px-2.5 py-1 rounded-md font-bold"><i class="fa-solid fa-trash-can mr-1"></i> Deleted Vehicle</span>`;
                 } else {
                     actionBadge = `<span class="bg-slate-700 text-slate-300 text-xs px-2.5 py-1 rounded-md">${l.action_type}</span>`;
                 }
