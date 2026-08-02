@@ -353,9 +353,10 @@ app.get('/api/customers', async (req, res) => {
     try {
         const { search, user_id, user_role, filter_user } = req.query;
         let sql = `
-            SELECT c.*, COUNT(v.id) AS vehicle_count, COALESCE(u.name, c.user_id) AS added_by_name 
+            SELECT c.*, 
+                   (SELECT COUNT(*) FROM vehicles v WHERE v.customer_id = c.id) AS vehicle_count, 
+                   COALESCE(u.name, c.user_id) AS added_by_name 
             FROM customers c 
-            LEFT JOIN vehicles v ON c.id = v.customer_id
             LEFT JOIN users u ON c.user_id = u.username
             WHERE 1=1
         `;
@@ -376,7 +377,7 @@ app.get('/api/customers', async (req, res) => {
             params.push(`%${search}%`, `%${search}%`, `%${search}%`);
         }
 
-        sql += ` GROUP BY c.id ORDER BY c.id DESC`;
+        sql += ` ORDER BY c.id DESC`;
 
         const customers = await query(sql, params);
         res.json({ success: true, customers });

@@ -271,16 +271,14 @@ async function loadDashboardStats() {
 }
 
 function openTotalCustomersFromCard() {
-    const currentUser = getLoggedInUser();
-    const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'ravi');
+    const globalFilter = document.getElementById('global-user-filter');
+    if (globalFilter) globalFilter.value = '';
 
-    if (isAdmin) {
-        const globalFilter = document.getElementById('global-user-filter');
-        if (globalFilter) globalFilter.value = '';
+    const searchInput = document.getElementById('customer-search');
+    if (searchInput) searchInput.value = '';
 
-        switchTab('customers');
-        loadCustomers();
-    }
+    switchTab('customers');
+    loadCustomers();
 }
 
 async function loadUpcomingExpiriesAlerts() {
