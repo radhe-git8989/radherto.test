@@ -95,11 +95,6 @@
 
                 <!-- User Profile & Logout -->
                 <div class="flex items-center space-x-3">
-                    <div id="api-limit-badge" onclick="showApiLimitModal()" class="hidden sm:flex bg-slate-900 border border-amber-500/40 hover:border-amber-400 text-amber-300 text-xs font-semibold px-3 py-1.5 rounded-lg items-center space-x-1.5 cursor-pointer shadow transition" title="Click to view RTO API limit details">
-                        <i class="fa-solid fa-bolt text-amber-400"></i>
-                        <span id="api-limit-text">RTO API: 7/7 Left</span>
-                    </div>
-
                     <button onclick="triggerCronJob()" class="hidden sm:flex bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg items-center space-x-1.5 shadow transition">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                         <span>Run Cron</span>
@@ -109,7 +104,7 @@
                         <div id="admin-user-avatar" class="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow">
                             R
                         </div>
-                        <span class="text-xs font-bold text-slate-200 hidden sm:inline" id="admin-user-label">Ravi (Admin)</span>
+                        <span class="text-xs font-bold text-slate-200 hidden sm:inline" id="admin-user-label">Ravi</span>
                         <button onclick="handleAdminLogout()" title="Logout" class="text-slate-400 hover:text-rose-400 text-sm p-1.5 rounded-lg hover:bg-slate-700 transition">
                             <i class="fa-solid fa-right-from-bracket"></i>
                         </button>
@@ -434,7 +429,74 @@
         </div>
     </div>
 
-    <!-- ==================== 5. E-CHALLAN CHECK MODAL ==================== -->
+    <!-- ==================== RENEW DOCUMENT MODAL ==================== -->
+    <div id="renew-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-6 relative">
+            <button onclick="closeRenewModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center text-lg shadow">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Renew Vehicle Documents</h3>
+                    <p class="text-xs text-indigo-300 font-mono font-bold" id="renew-vehicle-info">Vehicle Number</p>
+                </div>
+            </div>
+
+            <form id="renew-form" onsubmit="saveRenewDocuments(event)" class="space-y-4">
+                <input type="hidden" id="renew-veh-id">
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Select Documents to Renew *</label>
+                    <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 space-y-2">
+                        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                            <span class="text-xs text-slate-400 font-semibold">Select All Documents</span>
+                            <input type="checkbox" id="renew-doc-all" onchange="toggleAllRenewDocs(this)" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-800 border-slate-700 cursor-pointer">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <label class="flex items-center space-x-2 text-xs font-medium text-slate-200 cursor-pointer hover:text-white">
+                                <input type="checkbox" name="renew-doc" value="puc" class="renew-doc-check w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-800 border-slate-700 cursor-pointer">
+                                <span>PUC Expiry</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-xs font-medium text-slate-200 cursor-pointer hover:text-white">
+                                <input type="checkbox" name="renew-doc" value="insurance" class="renew-doc-check w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-800 border-slate-700 cursor-pointer">
+                                <span>Insurance Expiry</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-xs font-medium text-slate-200 cursor-pointer hover:text-white">
+                                <input type="checkbox" name="renew-doc" value="fitness" class="renew-doc-check w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-800 border-slate-700 cursor-pointer">
+                                <span>Fitness Expiry</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-xs font-medium text-slate-200 cursor-pointer hover:text-white">
+                                <input type="checkbox" name="renew-doc" value="tax" class="renew-doc-check w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-800 border-slate-700 cursor-pointer">
+                                <span>Tax Expiry</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">New Expiry Date *</label>
+                    <div class="flex space-x-2">
+                        <input type="date" id="renew-date" required class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <button type="button" onclick="setRenewDateToday()" class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 font-semibold px-3.5 py-2.5 rounded-xl text-xs transition flex items-center space-x-1.5 shadow">
+                            <i class="fa-regular fa-calendar-check text-indigo-400"></i>
+                            <span>Today</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-3">
+                    <button type="button" onclick="closeRenewModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-700 transition">Cancel</button>
+                    <button type="submit" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-5 py-2 rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/30 transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Update Expiry Date</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
     <div id="challan-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-slate-800 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6 relative">
             <button onclick="closeChallanModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition">

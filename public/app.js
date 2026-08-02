@@ -56,19 +56,8 @@ function handleAdminLogin(e) {
 }
 
 function checkAdminSession() {
-    localStorage.removeItem('rto_admin_session'); // wipe old localStorage
-    const session = sessionStorage.getItem('rto_admin_session');
-    if (session) {
-        try {
-            const data = JSON.parse(session);
-            if (data && data.username) {
-                showAppPortal();
-                return;
-            }
-        } catch (e) {
-            console.error('Session error:', e);
-        }
-    }
+    sessionStorage.removeItem('rto_admin_session');
+    localStorage.removeItem('rto_admin_session');
 
     // Not logged in -> Show Login Page
     document.getElementById('view-login').classList.remove('hidden');
@@ -79,14 +68,14 @@ function showAppPortal() {
     document.getElementById('view-login').classList.add('hidden');
     document.getElementById('app-portal').classList.remove('hidden');
 
-    // Update logged-in user label & avatar
+    // Update logged-in user label & avatar (only user name, no number)
     const session = sessionStorage.getItem('rto_admin_session');
     if (session) {
         try {
             const data = JSON.parse(session);
             const userLabel = document.getElementById('admin-user-label');
             const userAvatar = document.getElementById('admin-user-avatar');
-            if (userLabel) userLabel.textContent = `${data.name || data.username} (${data.phone || ''})`;
+            if (userLabel) userLabel.textContent = data.name || data.username;
             if (userAvatar) userAvatar.textContent = (data.name || data.username).charAt(0).toUpperCase();
         } catch(e){}
     }
@@ -479,9 +468,15 @@ async function loadVehicles() {
                         <td class="px-6 py-4">${formatExpiryBadge(v.insurance_expiry)}</td>
                         <td class="px-6 py-4">${formatExpiryBadge(v.fitness_expiry)}</td>
                         <td class="px-6 py-4">${formatExpiryBadge(v.tax_expiry)}</td>
-                        <td class="px-6 py-4 text-center space-x-2">
-                            <button onclick="editVehicle(${v.id})" class="text-slate-400 hover:text-purple-400 transition" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button onclick="deleteVehicle(${v.id})" class="text-slate-400 hover:text-rose-400 transition" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex items-center justify-center space-x-2">
+                                <button onclick="openRenewModal(${v.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow transition flex items-center space-x-1" title="Renew Documents">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                    <span>Renew</span>
+                                </button>
+                                <button onclick="editVehicle(${v.id})" class="text-slate-400 hover:text-purple-400 transition p-1" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button onclick="deleteVehicle(${v.id})" class="text-slate-400 hover:text-rose-400 transition p-1" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -603,6 +598,94 @@ async function deleteVehicle(id) {
             loadVehicles();
             loadDashboardStats();
             loadUpcomingExpiriesAlerts();
+        }
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+// ============================================================
+// VEHICLE DOCUMENT RENEWAL MODAL & LOGIC
+// ============================================================
+function openRenewModal(id) {
+    const vehicle = allVehiclesCache.find(v => v.id === id);
+    if (!vehicle) {
+        showToast('Vehicle details not found!', 'error');
+        return;
+    }
+
+    document.getElementById('renew-form').reset();
+    document.getElementById('renew-veh-id').value = vehicle.id;
+    document.getElementById('renew-vehicle-info').innerText = `${vehicle.vehicle_number} (${vehicle.customer_name})`;
+    
+    // Default all checkboxes to unchecked
+    document.getElementById('renew-doc-all').checked = false;
+    document.querySelectorAll('.renew-doc-check').forEach(cb => cb.checked = false);
+
+    // Set today's date as default
+    setRenewDateToday();
+
+    document.getElementById('renew-modal').classList.remove('hidden');
+}
+
+function closeRenewModal() {
+    document.getElementById('renew-modal').classList.add('hidden');
+}
+
+function toggleAllRenewDocs(selectAllCb) {
+    const checked = selectAllCb.checked;
+    document.querySelectorAll('.renew-doc-check').forEach(cb => cb.checked = checked);
+}
+
+function setRenewDateToday() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const formatted = `${year}-${month}-${day}`;
+    
+    const input = document.getElementById('renew-date');
+    if (input) {
+        input.value = formatted;
+    }
+}
+
+async function saveRenewDocuments(e) {
+    e.preventDefault();
+    const vehId = document.getElementById('renew-veh-id').value;
+    const renewDate = document.getElementById('renew-date').value;
+
+    const checkedDocs = Array.from(document.querySelectorAll('.renew-doc-check:checked')).map(cb => cb.value);
+
+    if (checkedDocs.length === 0) {
+        showToast('Please select at least one document (PUC, Insurance, Fitness, Tax) to renew!', 'error');
+        return;
+    }
+
+    if (!renewDate) {
+        showToast('Please select a new expiry date!', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/vehicles/${vehId}/renew`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                documents: checkedDocs,
+                renew_date: renewDate
+            })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast(data.message, 'success');
+            closeRenewModal();
+            loadVehicles();
+            loadDashboardStats();
+            loadUpcomingExpiriesAlerts();
+        } else {
+            showToast(data.error || 'Failed to renew documents', 'error');
         }
     } catch (err) {
         showToast(err.message, 'error');
@@ -827,25 +910,11 @@ async function autoFetchCustomerVehicle() {
 }
 
 // ============================================================
-// API LIMIT TRACKER FRONTEND LOGIC
+// API LIMIT TRACKER FRONTEND LOGIC (RTO API badge kept hidden per settings)
 // ============================================================
 async function updateApiLimitBadge() {
-    try {
-        const res = await fetch(`${API_BASE}/rto/limit-status`);
-        const data = await res.json();
-        if (data.success) {
-            const badge = document.getElementById('api-limit-badge');
-            const text = document.getElementById('api-limit-text');
-            if (badge && text) {
-                badge.classList.remove('hidden');
-                text.textContent = `RTO API: ${data.remaining_today}/${data.daily_limit} Left Today`;
-                if (data.remaining_today === 0) {
-                    badge.classList.replace('border-amber-500/40', 'border-rose-500/60');
-                    badge.classList.replace('text-amber-300', 'text-rose-300');
-                }
-            }
-        }
-    } catch(e){}
+    const badge = document.getElementById('api-limit-badge');
+    if (badge) badge.classList.add('hidden');
 }
 
 async function showApiLimitModal(customMsg = null) {

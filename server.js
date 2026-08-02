@@ -302,6 +302,54 @@ app.put('/api/vehicles/:id', async (req, res) => {
     }
 });
 
+// Renew Vehicle Documents
+app.post('/api/vehicles/:id/renew', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { documents, renew_date } = req.body;
+
+        if (!documents || !Array.isArray(documents) || documents.length === 0 || !renew_date) {
+            return res.status(400).json({ success: false, error: 'Documents selection and renew date are required' });
+        }
+
+        const setClause = [];
+        const params = [];
+
+        if (documents.includes('puc')) {
+            setClause.push('puc_expiry = ?');
+            params.push(renew_date);
+        }
+        if (documents.includes('insurance')) {
+            setClause.push('insurance_expiry = ?');
+            params.push(renew_date);
+        }
+        if (documents.includes('fitness')) {
+            setClause.push('fitness_expiry = ?');
+            params.push(renew_date);
+        }
+        if (documents.includes('tax')) {
+            setClause.push('tax_expiry = ?');
+            params.push(renew_date);
+        }
+
+        if (setClause.length === 0) {
+            return res.status(400).json({ success: false, error: 'No valid document types selected' });
+        }
+
+        params.push(id);
+        const sql = `UPDATE vehicles SET ${setClause.join(', ')} WHERE id = ?`;
+        await query(sql, params);
+
+        res.json({
+            success: true,
+            message: `Document(s) [${documents.map(d => d.toUpperCase()).join(', ')}] successfully renewed to ${renew_date}!`
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+
 // Delete Vehicle
 app.delete('/api/vehicles/:id', async (req, res) => {
     try {
