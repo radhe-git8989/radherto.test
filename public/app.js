@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // 0. ADMIN AUTHENTICATION (Multi-User Support)
 // ============================================================
 
-function handleAdminLogin(e) {
+async function handleAdminLogin(e) {
     e.preventDefault();
     const user = document.getElementById('login-username').value.trim().toLowerCase();
     const pass = document.getElementById('login-password').value;
@@ -29,30 +29,40 @@ function handleAdminLogin(e) {
     btn.disabled = true;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Authenticating...</span>`;
 
-    setTimeout(() => {
-        const foundUser = ADMIN_USERS.find(u => u.username.toLowerCase() === user && u.password === pass);
+    try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, password: pass })
+        });
+        const data = await res.json();
 
-        if (foundUser) {
+        if (data.success && data.user) {
             const sessionData = { 
-                username: foundUser.username, 
-                name: foundUser.name, 
-                phone: foundUser.phone, 
+                username: data.user.username, 
+                name: data.user.name, 
+                phone: data.user.phone || '',
+                role: data.user.role || 'user',
                 loggedInAt: new Date().toISOString() 
             };
             sessionStorage.setItem('rto_admin_session', JSON.stringify(sessionData));
-            localStorage.removeItem('rto_admin_session'); // clear old persistent storage
+            localStorage.removeItem('rto_admin_session');
 
-            showToast(`Login successful! Welcome, ${foundUser.name} 👋`, 'success');
+            showToast(`Login successful! Welcome, ${data.user.name} 👋`, 'success');
             btn.disabled = false;
             btn.innerHTML = `<span>Login to Dashboard</span> <i class="fa-solid fa-arrow-right"></i>`;
 
             showAppPortal();
         } else {
-            showToast('Invalid username or password!', 'error');
+            showToast(data.error || 'Invalid username or password!', 'error');
             btn.disabled = false;
             btn.innerHTML = `<span>Login to Dashboard</span> <i class="fa-solid fa-arrow-right"></i>`;
         }
-    }, 400);
+    } catch(err) {
+        showToast('Login error: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<span>Login to Dashboard</span> <i class="fa-solid fa-arrow-right"></i>`;
+    }
 }
 
 function checkAdminSession() {
@@ -64,20 +74,57 @@ function checkAdminSession() {
     document.getElementById('app-portal').classList.add('hidden');
 }
 
-function showAppPortal() {
+function getUserQueryParams() {
+    const session = sessionStorage.getItem('rto_admin_session');
+    if (!session) return '';
+    try {
+        const data = JSON.parse(session);
+        const params = new URLSearchParams();
+        if (data.username) params.append('user_id', data.username);
+        if (data.role) params.append('user_role', data.role);
+
+        const globalFilter = document.getElementById('global-user-filter');
+        if (data.role === 'admin' && globalFilter && globalFilter.value) {
+            params.append('filter_user', globalFilter.value);
+        }
+        return params.toString();
+    } catch(e) {
+        return '';
+    }
+}
+
+function getLoggedInUser() {
+    const session = sessionStorage.getItem('rto_admin_session');
+    if (!session) return null;
+    try {
+        return JSON.parse(session);
+    } catch(e) {
+        return null;
+    }
+}
+
+async function showAppPortal() {
     document.getElementById('view-login').classList.add('hidden');
     document.getElementById('app-portal').classList.remove('hidden');
 
-    // Update logged-in user label & avatar (only user name, no number)
-    const session = sessionStorage.getItem('rto_admin_session');
-    if (session) {
-        try {
-            const data = JSON.parse(session);
-            const userLabel = document.getElementById('admin-user-label');
-            const userAvatar = document.getElementById('admin-user-avatar');
-            if (userLabel) userLabel.textContent = data.name || data.username;
-            if (userAvatar) userAvatar.textContent = (data.name || data.username).charAt(0).toUpperCase();
-        } catch(e){}
+    const currentUser = getLoggedInUser();
+    if (currentUser) {
+        const userLabel = document.getElementById('admin-user-label');
+        const userAvatar = document.getElementById('admin-user-avatar');
+        if (userLabel) userLabel.textContent = `${currentUser.name}${currentUser.role === 'admin' ? ' (Super Admin)' : ''}`;
+        if (userAvatar) userAvatar.textContent = (currentUser.name || currentUser.username).charAt(0).toUpperCase();
+
+        const navUsers = document.getElementById('nav-users');
+        const filterContainer = document.getElementById('super-admin-filter-container');
+
+        if (currentUser.role === 'admin') {
+            if (navUsers) navUsers.classList.remove('hidden');
+            if (filterContainer) filterContainer.classList.remove('hidden');
+            loadSuperAdminUserFilter();
+        } else {
+            if (navUsers) navUsers.classList.add('hidden');
+            if (filterContainer) filterContainer.classList.add('hidden');
+        }
     }
 
     loadDashboardStats();
@@ -130,6 +177,8 @@ function switchTab(tabName) {
         loadCustomers();
     } else if (tabName === 'vehicles') {
         loadVehicles();
+    } else if (tabName === 'users') {
+        loadUsers();
     }
 }
 
@@ -139,7 +188,7 @@ function switchTab(tabName) {
 
 async function loadDashboardStats() {
     try {
-        const res = await fetch(`${API_BASE}/dashboard/stats`);
+        const res = await fetch(`${API_BASE}/dashboard/stats?${getUserQueryParams()}`);
         const data = await res.json();
         if (data.success) {
             document.getElementById('stat-customers').innerText = data.stats.total_customers;
@@ -158,7 +207,7 @@ async function loadUpcomingExpiriesAlerts() {
     tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Loading document expiry alerts...</td></tr>`;
 
     try {
-        const res = await fetch(`${API_BASE}/expiries/upcoming?days=${daysLimit}`);
+        const res = await fetch(`${API_BASE}/expiries/upcoming?days=${daysLimit}&${getUserQueryParams()}`);
         const data = await res.json();
 
         if (!data.success || data.alerts.length === 0) {
@@ -167,6 +216,9 @@ async function loadUpcomingExpiriesAlerts() {
         }
 
         let html = '';
+        const currentUser = getLoggedInUser();
+        const isAdmin = currentUser && currentUser.role === 'admin';
+
         data.alerts.forEach(item => {
             let badgeClass = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
             let statusText = `${item.days_left} Days Left`;
@@ -182,9 +234,11 @@ async function loadUpcomingExpiriesAlerts() {
                 rowBg = 'bg-rose-500/5';
             }
 
+            let addedByBadge = isAdmin ? `<span class="block text-[11px] font-medium text-amber-300 mt-0.5">By: ${escapeHtml(item.added_by || item.user_id)}</span>` : '';
+
             html += `
                 <tr class="hover:bg-slate-700/40 transition ${rowBg}">
-                    <td class="px-6 py-4 font-semibold text-white">${escapeHtml(item.customer_name)}</td>
+                    <td class="px-6 py-4 font-semibold text-white">${escapeHtml(item.customer_name)} ${addedByBadge}</td>
                     <td class="px-6 py-4 font-mono text-xs text-indigo-300">${escapeHtml(item.mobile_number)}</td>
                     <td class="px-6 py-4 font-mono font-bold text-white">${escapeHtml(item.vehicle_number)}</td>
                     <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-slate-700 text-indigo-300 border border-slate-600">${escapeHtml(item.document_type)}</span></td>
@@ -267,7 +321,7 @@ async function loadCustomers() {
     const tbody = document.getElementById('customers-table-body');
 
     try {
-        const res = await fetch(`${API_BASE}/customers?search=${encodeURIComponent(search)}`);
+        const res = await fetch(`${API_BASE}/customers?search=${encodeURIComponent(search)}&${getUserQueryParams()}`);
         const data = await res.json();
 
         if (data.success) {
@@ -279,12 +333,16 @@ async function loadCustomers() {
                 return;
             }
 
+            const currentUser = getLoggedInUser();
+            const isAdmin = currentUser && currentUser.role === 'admin';
+
             let html = '';
             data.customers.forEach(c => {
+                let ownerBadge = isAdmin ? `<span class="block text-[11px] font-medium text-amber-300 mt-0.5">By: ${escapeHtml(c.added_by_name || c.user_id)}</span>` : '';
                 html += `
                     <tr class="hover:bg-slate-700/40 transition">
                         <td class="px-6 py-4 text-slate-400">#${c.id}</td>
-                        <td class="px-6 py-4 font-semibold text-white">${escapeHtml(c.name)}</td>
+                        <td class="px-6 py-4 font-semibold text-white">${escapeHtml(c.name)} ${ownerBadge}</td>
                         <td class="px-6 py-4 font-mono text-indigo-300">${escapeHtml(c.mobile_number)}</td>
                         <td class="px-6 py-4 text-slate-400">${escapeHtml(c.email || '-')}</td>
                         <td class="px-6 py-4 text-slate-400 text-xs">${escapeHtml(c.address || '-')}</td>
@@ -350,9 +408,9 @@ async function saveCustomer(e) {
     const mobile_number = document.getElementById('cust-mobile').value.trim();
     const email = document.getElementById('cust-email').value.trim();
     const address = document.getElementById('cust-address').value.trim();
-    const vehNumber = document.getElementById('cust-veh-number')?.value.trim().toUpperCase();
+    const currentUser = getLoggedInUser();
 
-    const body = { name, mobile_number, email, address };
+    const body = { name, mobile_number, email, address, user_id: currentUser ? currentUser.username : 'ravi' };
 
     const method = id ? 'PUT' : 'POST';
     const url = id ? `${API_BASE}/customers/${id}` : `${API_BASE}/customers`;
@@ -446,7 +504,8 @@ async function loadVehicles() {
         if (vehicleType) queryParams.append('vehicle_type', vehicleType);
         if (customerId) queryParams.append('customer_id', customerId);
 
-        const res = await fetch(`${API_BASE}/vehicles?${queryParams.toString()}`);
+        const fullQuery = queryParams.toString() ? `${queryParams.toString()}&${getUserQueryParams()}` : getUserQueryParams();
+        const res = await fetch(`${API_BASE}/vehicles?${fullQuery}`);
         const data = await res.json();
 
         if (data.success) {
@@ -457,11 +516,15 @@ async function loadVehicles() {
                 return;
             }
 
+            const currentUser = getLoggedInUser();
+            const isAdmin = currentUser && currentUser.role === 'admin';
+
             let html = '';
             data.vehicles.forEach(v => {
+                let ownerBadge = isAdmin ? `<span class="block text-[11px] font-medium text-amber-300 mt-0.5">By: ${escapeHtml(v.added_by_name || v.user_id)}</span>` : '';
                 html += `
                     <tr class="hover:bg-slate-700/40 transition">
-                        <td class="px-6 py-4 font-mono font-bold text-white">${escapeHtml(v.vehicle_number)}</td>
+                        <td class="px-6 py-4 font-mono font-bold text-white">${escapeHtml(v.vehicle_number)} ${ownerBadge}</td>
                         <td class="px-6 py-4"><span class="bg-slate-700 text-slate-300 text-xs px-2.5 py-1 rounded-md font-semibold">${escapeHtml(v.vehicle_type)}</span></td>
                         <td class="px-6 py-4 text-slate-200">${escapeHtml(v.customer_name)} <span class="block text-xs font-mono text-indigo-400">${escapeHtml(v.mobile_number)}</span></td>
                         <td class="px-6 py-4">${formatExpiryBadge(v.puc_expiry)}</td>
@@ -550,6 +613,8 @@ function closeVehicleModal() {
 async function saveVehicle(e) {
     e.preventDefault();
     const id = document.getElementById('veh-id').value;
+    const currentUser = getLoggedInUser();
+
     const body = {
         customer_id: document.getElementById('veh-customer-id').value,
         vehicle_number: document.getElementById('veh-number').value.trim().toUpperCase(),
@@ -557,7 +622,8 @@ async function saveVehicle(e) {
         puc_expiry: document.getElementById('veh-puc').value || null,
         insurance_expiry: document.getElementById('veh-insurance').value || null,
         fitness_expiry: document.getElementById('veh-fitness').value || null,
-        tax_expiry: document.getElementById('veh-tax').value || null
+        tax_expiry: document.getElementById('veh-tax').value || null,
+        user_id: currentUser ? currentUser.username : 'ravi'
     };
 
     const method = id ? 'PUT' : 'POST';
@@ -605,8 +671,130 @@ async function deleteVehicle(id) {
 }
 
 // ============================================================
-// VEHICLE DOCUMENT RENEWAL MODAL & LOGIC
+// SUPER ADMIN USER MANAGEMENT & FILTER FUNCTIONS
 // ============================================================
+async function loadSuperAdminUserFilter() {
+    const filterSelect = document.getElementById('global-user-filter');
+    if (!filterSelect) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/users`);
+        const data = await res.json();
+        if (data.success) {
+            let html = `<option value="">All Users (Super Admin View)</option>`;
+            data.users.forEach(u => {
+                html += `<option value="${u.username}">${escapeHtml(u.name)} (@${u.username})</option>`;
+            });
+            filterSelect.innerHTML = html;
+        }
+    } catch(e){}
+}
+
+function onUserFilterChange() {
+    loadDashboardStats();
+    loadUpcomingExpiriesAlerts();
+    loadCustomers();
+    loadVehicles();
+}
+
+async function loadUsers() {
+    const tbody = document.getElementById('users-table-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Loading system users...</td></tr>`;
+
+    try {
+        const res = await fetch(`${API_BASE}/users`);
+        const data = await res.json();
+
+        if (data.success) {
+            if (data.users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">No users found. Click 'Add New System User' to create one.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            data.users.forEach(u => {
+                let roleBadge = u.role === 'admin' 
+                    ? `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs px-2.5 py-1 rounded-full font-bold">Super Admin</span>`
+                    : `<span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs px-2.5 py-1 rounded-full font-semibold">Normal User</span>`;
+
+                let deleteBtn = u.username === 'ravi' 
+                    ? `<span class="text-xs text-slate-500 font-mono">System Owner</span>`
+                    : `<button onclick="deleteSystemUser(${u.id}, '${escapeHtml(u.username)}')" class="text-slate-400 hover:text-rose-400 transition" title="Delete User"><i class="fa-solid fa-trash-can"></i> Delete</button>`;
+
+                html += `
+                    <tr class="hover:bg-slate-700/40 transition">
+                        <td class="px-6 py-4 text-slate-400">#${u.id}</td>
+                        <td class="px-6 py-4 font-mono font-bold text-white">@${escapeHtml(u.username)}</td>
+                        <td class="px-6 py-4 font-semibold text-slate-200">${escapeHtml(u.name)}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-indigo-300">${escapeHtml(u.phone || '-')}</td>
+                        <td class="px-6 py-4">${roleBadge}</td>
+                        <td class="px-6 py-4 text-center">${deleteBtn}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+    } catch(err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-rose-400">Error loading users: ${err.message}</td></tr>`;
+    }
+}
+
+function openUserModal() {
+    document.getElementById('user-form').reset();
+    document.getElementById('user-modal').classList.remove('hidden');
+}
+
+function closeUserModal() {
+    document.getElementById('user-modal').classList.add('hidden');
+}
+
+async function saveSystemUser(e) {
+    e.preventDefault();
+    const username = document.getElementById('new-user-name').value.trim().toLowerCase();
+    const password = document.getElementById('new-user-pass').value;
+    const name = document.getElementById('new-user-fullname').value.trim();
+    const phone = document.getElementById('new-user-phone').value.trim();
+    const role = document.getElementById('new-user-role').value;
+
+    try {
+        const res = await fetch(`${API_BASE}/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, name, phone, role })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast(data.message, 'success');
+            closeUserModal();
+            loadUsers();
+            loadSuperAdminUserFilter();
+        } else {
+            showToast(data.error || 'Failed to create user', 'error');
+        }
+    } catch(err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function deleteSystemUser(id, username) {
+    if (!confirm(`Are you sure you want to delete user '@${username}'?`)) return;
+    try {
+        const res = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, 'info');
+            loadUsers();
+            loadSuperAdminUserFilter();
+        } else {
+            showToast(data.error || 'Failed to delete user', 'error');
+        }
+    } catch(err) {
+        showToast(err.message, 'error');
+    }
+}
 function openRenewModal(id) {
     const vehicle = allVehiclesCache.find(v => v.id === id);
     if (!vehicle) {

@@ -88,9 +88,24 @@ async function initDB() {
         // Initialize SQLite Tables & Sample Seed Data
         await new Promise((resolve) => {
             sqliteDb.serialize(() => {
+                // 1. Users Table
+                sqliteDb.run(`
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT NOT NULL UNIQUE,
+                        password TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        phone TEXT,
+                        role TEXT NOT NULL DEFAULT 'user',
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    );
+                `);
+
+                // 2. Customers Table
                 sqliteDb.run(`
                     CREATE TABLE IF NOT EXISTS customers (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT DEFAULT 'ravi',
                         name TEXT NOT NULL,
                         mobile_number TEXT NOT NULL UNIQUE,
                         email TEXT,
@@ -99,10 +114,15 @@ async function initDB() {
                     );
                 `);
 
+                // Add user_id column if table already exists without it
+                sqliteDb.run(`ALTER TABLE customers ADD COLUMN user_id TEXT DEFAULT 'ravi'`, () => {});
+
+                // 3. Vehicles Table
                 sqliteDb.run(`
                     CREATE TABLE IF NOT EXISTS vehicles (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         customer_id INTEGER NOT NULL,
+                        user_id TEXT DEFAULT 'ravi',
                         vehicle_number TEXT NOT NULL UNIQUE,
                         vehicle_type TEXT DEFAULT 'Car',
                         puc_expiry DATE,
@@ -114,21 +134,37 @@ async function initDB() {
                     );
                 `);
 
+                // Add user_id column if table already exists without it
+                sqliteDb.run(`ALTER TABLE vehicles ADD COLUMN user_id TEXT DEFAULT 'ravi'`, () => {});
+
+                // Seed Default Users if empty
+                sqliteDb.get("SELECT COUNT(*) as count FROM users", (err, row) => {
+                    if (row && row.count === 0) {
+                        console.log("🌱 Seeding default users into database...");
+                        sqliteDb.run(`INSERT INTO users (username, password, name, phone, role) VALUES
+                            ('ravi', '1234', 'Ravi Nakum', '9824582291', 'admin'),
+                            ('jignesh', '1234', 'Jignesh Chauhan', '6351839895', 'user'),
+                            ('raju', '1234', 'Raju Patel', '9876543210', 'user'),
+                            ('ashvin', '1234', 'Ashvin Parmar', '9823456789', 'user');
+                        `);
+                    }
+                });
+
                 // Insert sample data if empty
                 sqliteDb.get("SELECT COUNT(*) as count FROM customers", (err, row) => {
                     if (row && row.count === 0) {
                         console.log("🌱 Seeding sample data into SQLite database...");
-                        sqliteDb.run(`INSERT INTO customers (id, name, mobile_number, email, address) VALUES
-                            (1, 'Ramesh Patel', '9876543210', 'ramesh@example.com', 'Ahmedabad, Gujarat'),
-                            (2, 'Suresh Sharma', '9823456789', 'suresh@example.com', 'Surat, Gujarat'),
-                            (3, 'Priya Shah', '9912345678', 'priya@example.com', 'Vadodara, Gujarat');
+                        sqliteDb.run(`INSERT INTO customers (id, user_id, name, mobile_number, email, address) VALUES
+                            (1, 'ravi', 'Ramesh Patel', '9876543210', 'ramesh@example.com', 'Ahmedabad, Gujarat'),
+                            (2, 'raju', 'Suresh Sharma', '9823456789', 'suresh@example.com', 'Surat, Gujarat'),
+                            (3, 'ashvin', 'Priya Shah', '9912345678', 'priya@example.com', 'Vadodara, Gujarat');
                         `);
 
-                        sqliteDb.run(`INSERT INTO vehicles (id, customer_id, vehicle_number, vehicle_type, puc_expiry, insurance_expiry, fitness_expiry, tax_expiry) VALUES
-                            (1, 1, 'GJ-01-AB-1234', 'Car', '${addDays(5)}', '${addDays(10)}', '${addDays(90)}', '${addDays(180)}'),
-                            (2, 1, 'GJ-01-XY-9876', 'Bike', '${addDays(2)}', '${addDays(-3)}', '${addDays(120)}', '${addDays(200)}'),
-                            (3, 2, 'GJ-05-CD-5678', 'Truck', '${addDays(12)}', '${addDays(14)}', '${addDays(8)}', '${addDays(45)}'),
-                            (4, 3, 'GJ-06-EF-4321', 'Car', '${addDays(25)}', '${addDays(2)}', '${addDays(60)}', '${addDays(150)}');
+                        sqliteDb.run(`INSERT INTO vehicles (id, customer_id, user_id, vehicle_number, vehicle_type, puc_expiry, insurance_expiry, fitness_expiry, tax_expiry) VALUES
+                            (1, 1, 'ravi', 'GJ-01-AB-1234', 'Car', '${addDays(5)}', '${addDays(10)}', '${addDays(90)}', '${addDays(180)}'),
+                            (2, 1, 'ravi', 'GJ-01-XY-9876', 'Bike', '${addDays(2)}', '${addDays(-3)}', '${addDays(120)}', '${addDays(200)}'),
+                            (3, 2, 'raju', 'GJ-05-CD-5678', 'Truck', '${addDays(12)}', '${addDays(14)}', '${addDays(8)}', '${addDays(45)}'),
+                            (4, 3, 'ashvin', 'GJ-06-EF-4321', 'Car', '${addDays(25)}', '${addDays(2)}', '${addDays(60)}', '${addDays(150)}');
                         `);
                     }
                     resolve();

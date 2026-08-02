@@ -91,6 +91,10 @@
                         <i class="fa-solid fa-car"></i>
                         <span>Vehicles</span>
                     </button>
+                    <button onclick="switchTab('users')" id="nav-users" class="nav-btn hidden px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                        <i class="fa-solid fa-user-gear text-amber-400"></i>
+                        <span>User Management</span>
+                    </button>
                 </nav>
 
                 <!-- User Profile & Logout -->
@@ -124,7 +128,18 @@
                         <h2 class="text-2xl font-bold text-white">System Dashboard Overview</h2>
                         <p class="text-sm text-slate-400">Track upcoming document expiries and automate WhatsApp customer reminders.</p>
                     </div>
-                    <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-3 flex-wrap gap-2">
+                        <!-- Super Admin User Filter -->
+                        <div id="super-admin-filter-container" class="hidden flex items-center space-x-2 bg-slate-800/90 border border-amber-500/40 rounded-xl px-3 py-1.5 shadow">
+                            <span class="text-xs text-amber-300 font-bold flex items-center space-x-1">
+                                <i class="fa-solid fa-filter"></i>
+                                <span>User:</span>
+                            </span>
+                            <select id="global-user-filter" onchange="onUserFilterChange()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 font-semibold focus:outline-none focus:border-amber-500">
+                                <option value="">All Users (Super Admin View)</option>
+                            </select>
+                        </div>
+
                         <button onclick="openCustomerModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-xl flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition">
                             <i class="fa-solid fa-user-plus"></i>
                             <span>Add Customer</span>
@@ -327,10 +342,85 @@
                 </div>
             </section>
 
+            <!-- ================= PAGE 4: USER MANAGEMENT (SUPER ADMIN ONLY) ================= -->
+            <section id="view-users" class="hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white flex items-center space-x-2">
+                            <span>System User Management</span>
+                            <span class="bg-amber-500/20 text-amber-300 text-xs px-2.5 py-0.5 rounded-full border border-amber-500/30">Super Admin Only</span>
+                        </h2>
+                        <p class="text-sm text-slate-400">Add new users/friends and manage their access roles.</p>
+                    </div>
+                    <button onclick="openUserModal()" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-sm font-bold px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-lg transition self-start">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Add New System User</span>
+                    </button>
+                </div>
+
+                <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-slate-900/60 text-slate-400 text-xs uppercase font-semibold">
+                                <tr>
+                                    <th class="px-6 py-4">ID</th>
+                                    <th class="px-6 py-4">Username (Login ID)</th>
+                                    <th class="px-6 py-4">Full Name</th>
+                                    <th class="px-6 py-4">Phone Number</th>
+                                    <th class="px-6 py-4">Role</th>
+                                    <th class="px-6 py-4 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body" class="divide-y divide-slate-700/60">
+                                <!-- Injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
         </main>
     </div>
 
     <!-- ================= MODALS ================= -->
+    <!-- System User Modal (Super Admin Only) -->
+    <div id="user-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-6 relative">
+            <button onclick="closeUserModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="text-xl font-bold text-white mb-4">Add New System User</h3>
+            
+            <form id="user-form" onsubmit="saveSystemUser(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Username (Login ID) *</label>
+                    <input type="text" id="new-user-name" required placeholder="e.g. raju" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Password *</label>
+                    <input type="password" id="new-user-pass" required placeholder="••••••••" autocomplete="new-password" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Full Name *</label>
+                    <input type="text" id="new-user-fullname" required placeholder="e.g. Raju Patel" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Phone Number</label>
+                    <input type="tel" id="new-user-phone" placeholder="e.g. 9876543210" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">User Access Role</label>
+                    <select id="new-user-role" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                        <option value="user" selected>Normal User (Only Own Data)</option>
+                        <option value="admin">Super Admin (All Data Access)</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeUserModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 px-5 py-2 rounded-xl text-sm font-bold shadow-lg">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Customer Modal -->
     <div id="customer-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-6 relative">
