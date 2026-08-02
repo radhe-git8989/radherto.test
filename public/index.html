@@ -95,6 +95,10 @@
                         <i class="fa-solid fa-user-gear text-amber-400"></i>
                         <span>User Management</span>
                     </button>
+                    <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn hidden px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                        <i class="fa-solid fa-chart-line text-emerald-400"></i>
+                        <span>Activity & Reports</span>
+                    </button>
                 </nav>
 
                 <!-- User Profile & Logout -->
@@ -363,15 +367,101 @@
                         <table class="w-full text-left text-sm text-slate-300">
                             <thead class="bg-slate-900/60 text-slate-400 text-xs uppercase font-semibold">
                                 <tr>
-                                    <th class="px-6 py-4">ID</th>
+                                    <th class="px-6 py-4">#</th>
                                     <th class="px-6 py-4">Username (Login ID)</th>
                                     <th class="px-6 py-4">Full Name</th>
+                                    <th class="px-6 py-4">Shop / Business Name</th>
                                     <th class="px-6 py-4">Phone Number</th>
                                     <th class="px-6 py-4">Role</th>
                                     <th class="px-6 py-4 text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="users-table-body" class="divide-y divide-slate-700/60">
+                                <!-- Injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= PAGE 5: ACTIVITY LOGS & REPORTS (SUPER ADMIN ONLY) ================= -->
+            <section id="view-reports" class="hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white flex items-center space-x-2">
+                            <span>Owner Activity & Monthly Analytics Report</span>
+                            <span class="bg-emerald-500/20 text-emerald-300 text-xs px-2.5 py-0.5 rounded-full border border-emerald-500/30">Super Admin Audit</span>
+                        </h2>
+                        <p class="text-sm text-slate-400">Track user performance, new customers added, and document renewals per month.</p>
+                    </div>
+
+                    <!-- Filter Options -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <select id="report-user-filter" onchange="loadReports()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2 focus:outline-none focus:border-emerald-500">
+                            <option value="">All Users Report</option>
+                        </select>
+                        <input type="month" id="report-month-filter" onchange="loadReports()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2 focus:outline-none focus:border-emerald-500">
+                        <button onclick="loadReports()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow flex items-center space-x-1">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Report Summary Stats -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">New Customers Added</p>
+                            <h3 id="report-stat-customers" class="text-3xl font-extrabold text-white mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-xl font-bold border border-indigo-500/20">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">New Vehicles Added</p>
+                            <h3 id="report-stat-vehicles" class="text-3xl font-extrabold text-white mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl font-bold border border-purple-500/20">
+                            <i class="fa-solid fa-car-side"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Documents Renewed</p>
+                            <h3 id="report-stat-renewals" class="text-3xl font-extrabold text-white mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl font-bold border border-emerald-500/20">
+                            <i class="fa-solid fa-file-circle-check"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Log Audit Table -->
+                <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-700/80 flex items-center justify-between bg-slate-900/40">
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-2">
+                            <i class="fa-solid fa-list-check text-emerald-400"></i>
+                            <span>Audit & Renewal Log History</span>
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-slate-900/60 text-slate-400 text-xs uppercase font-semibold">
+                                <tr>
+                                    <th class="px-6 py-4">#</th>
+                                    <th class="px-6 py-4">Date & Time</th>
+                                    <th class="px-6 py-4">Performed By (User)</th>
+                                    <th class="px-6 py-4">Action</th>
+                                    <th class="px-6 py-4">Customer / Vehicle</th>
+                                    <th class="px-6 py-4">Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reports-table-body" class="divide-y divide-slate-700/60">
                                 <!-- Injected by JS -->
                             </tbody>
                         </table>

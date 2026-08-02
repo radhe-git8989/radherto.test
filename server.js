@@ -9,9 +9,20 @@ const { initCronJobs, checkAndSendReminders, sendWhatsAppReminder } = require('.
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
+
+async function logActivity(userId, actionType, customerName, vehicleNumber, details) {
+    try {
+        await query(
+            'INSERT INTO activity_logs (user_id, action_type, customer_name, vehicle_number, details) VALUES (?, ?, ?, ?, ?)',
+            [userId || 'ravi', actionType, customerName || null, vehicleNumber || null, details || null]
+        );
+    } catch(err) {
+        console.error('Failed to log activity:', err.message);
+    }
+}
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static frontend files
@@ -360,6 +371,8 @@ app.post('/api/customers', async (req, res) => {
             [ownerId, name, mobile_number, email || null, address || null]
         );
 
+        logActivity(ownerId, 'ADD_CUSTOMER', name, null, `New customer registered: ${mobile_number}`);
+
         res.json({ success: true, message: 'Customer added successfully', customer_id: result.insertId });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -466,6 +479,8 @@ app.post('/api/vehicles', async (req, res) => {
             [customer_id, ownerId, vehicle_number, vehicle_type || 'Car', puc_expiry || null, insurance_expiry || null, fitness_expiry || null, tax_expiry || null]
         );
 
+        logActivity(ownerId, 'ADD_VEHICLE', null, vehicle_number, `New ${vehicle_type || 'Vehicle'} registered`);
+
         res.json({ success: true, message: 'Vehicle added successfully', vehicle_id: result.insertId });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -528,6 +543,12 @@ app.post('/api/vehicles/:id/renew', async (req, res) => {
         params.push(id);
         const sql = `UPDATE vehicles SET ${setClause.join(', ')} WHERE id = ?`;
         await query(sql, params);
+
+        const vehicles = await query('SELECT v.vehicle_number, v.user_id, c.name as customer_name FROM vehicles v JOIN customers c ON v.customer_id = c.id WHERE v.id = ?', [id]);
+        if (vehicles && vehicles.length > 0) {
+            const v = vehicles[0];
+            logActivity(req.body.user_id || v.user_id, 'RENEW_DOCUMENT', v.customer_name, v.vehicle_number, `Renewed [${documents.map(d => d.toUpperCase()).join(', ')}] to ${renew_date}`);
+        }
 
         res.json({
             success: true,
@@ -750,6 +771,73 @@ app.get('/api/rto/fetch-vehicle', async (req, res) => {
             }
         });
     } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ============================================================
+// 8. SUPER ADMIN REPORTS & AUDIT LOGS API
+// ============================================================
+app.get('/api/reports/analytics', async (req, res) => {
+    try {
+        const { user_id, user_role, filter_user, month } = req.query;
+
+        let custWhere = 'WHERE 1=1';
+        let vehWhere = 'WHERE 1=1';
+        let logWhere = 'WHERE 1=1';
+        const params = [];
+        const logParams = [];
+
+        if (user_role !== 'admin') {
+            custWhere += ' AND user_id = ?';
+            vehWhere += ' AND user_id = ?';
+            logWhere += ' AND l.user_id = ?';
+            params.push(user_id || 'ravi');
+            logParams.push(user_id || 'ravi');
+        } else if (filter_user) {
+            custWhere += ' AND user_id = ?';
+            vehWhere += ' AND user_id = ?';
+            logWhere += ' AND l.user_id = ?';
+            params.push(filter_user);
+            logParams.push(filter_user);
+        }
+
+        if (month && month !== 'all') {
+            custWhere += ` AND created_at LIKE ?`;
+            vehWhere += ` AND created_at LIKE ?`;
+            logWhere += ` AND l.created_at LIKE ?`;
+            params.push(`${month}%`);
+            logParams.push(`${month}%`);
+        }
+
+        const custRes = await query(`SELECT COUNT(*) as count FROM customers ${custWhere}`, params);
+        const vehRes = await query(`SELECT COUNT(*) as count FROM vehicles ${vehWhere}`, params);
+        
+        let renewWhere = logWhere + " AND l.action_type = 'RENEW_DOCUMENT'";
+        const renewRes = await query(`SELECT COUNT(*) as count FROM activity_logs l ${renewWhere}`, logParams);
+
+        const logs = await query(`
+            SELECT 
+                l.id, l.user_id, l.action_type, l.customer_name, l.vehicle_number, l.details, l.created_at,
+                COALESCE(u.name, l.user_id) AS user_name,
+                COALESCE(u.shop_name, 'Radhe RTO Services') AS shop_name
+            FROM activity_logs l
+            LEFT JOIN users u ON l.user_id = u.username
+            ${logWhere}
+            ORDER BY l.id DESC
+            LIMIT 100
+        `, logParams);
+
+        res.json({
+            success: true,
+            stats: {
+                new_customers: custRes[0]?.count || 0,
+                new_vehicles: vehRes[0]?.count || 0,
+                renewals: renewRes[0]?.count || 0
+            },
+            logs: logs
+        });
+    } catch(err) {
         res.status(500).json({ success: false, error: err.message });
     }
 });

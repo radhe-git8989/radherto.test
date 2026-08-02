@@ -113,9 +113,18 @@ async function initMySQLTables() {
             );
         `);
 
-        try {
-            await pool.query(`ALTER TABLE vehicles ADD COLUMN user_id VARCHAR(50) DEFAULT 'ravi'`);
-        } catch(e){}
+        // 4. Activity Logs Table (Audit & Reporting)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL,
+                action_type VARCHAR(50) NOT NULL,
+                customer_name VARCHAR(100),
+                vehicle_number VARCHAR(30),
+                details TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
 
         // Seed Default Users if empty
         const [users] = await pool.query('SELECT COUNT(*) as count FROM users');
@@ -251,7 +260,18 @@ async function initDB() {
                     );
                 `);
 
-                sqliteDb.run(`ALTER TABLE vehicles ADD COLUMN user_id TEXT DEFAULT 'ravi'`, () => {});
+                // 4. Activity Logs Table (Audit & Reporting)
+                sqliteDb.run(`
+                    CREATE TABLE IF NOT EXISTS activity_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT NOT NULL,
+                        action_type TEXT NOT NULL,
+                        customer_name TEXT,
+                        vehicle_number TEXT,
+                        details TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    );
+                `);
 
                 // Seed Default Users if empty
                 sqliteDb.get("SELECT COUNT(*) as count FROM users", (err, row) => {

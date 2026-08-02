@@ -115,14 +115,17 @@ async function showAppPortal() {
         if (userAvatar) userAvatar.textContent = (currentUser.name || currentUser.username).charAt(0).toUpperCase();
 
         const navUsers = document.getElementById('nav-users');
+        const navReports = document.getElementById('nav-reports');
         const filterContainer = document.getElementById('super-admin-filter-container');
 
         if (currentUser.role === 'admin') {
             if (navUsers) navUsers.classList.remove('hidden');
+            if (navReports) navReports.classList.remove('hidden');
             if (filterContainer) filterContainer.classList.remove('hidden');
             loadSuperAdminUserFilter();
         } else {
             if (navUsers) navUsers.classList.add('hidden');
+            if (navReports) navReports.classList.add('hidden');
             if (filterContainer) filterContainer.classList.add('hidden');
         }
     }
@@ -179,6 +182,8 @@ function switchTab(tabName) {
         loadVehicles();
     } else if (tabName === 'users') {
         loadUsers();
+    } else if (tabName === 'reports') {
+        loadReports();
     }
 }
 
@@ -334,11 +339,11 @@ async function loadCustomers() {
             const isAdmin = currentUser && currentUser.role === 'admin';
 
             let html = '';
-            data.customers.forEach(c => {
+            data.customers.forEach((c, idx) => {
                 let ownerBadge = isAdmin ? `<span class="block text-[11px] font-medium text-amber-300 mt-0.5">By: ${escapeHtml(c.added_by_name || c.user_id)}</span>` : '';
                 html += `
                     <tr class="hover:bg-slate-700/40 transition">
-                        <td class="px-6 py-4 text-slate-400">#${c.id}</td>
+                        <td class="px-6 py-4 text-slate-400 font-mono">#${idx + 1}</td>
                         <td class="px-6 py-4 font-semibold text-white">${escapeHtml(c.name)} ${ownerBadge}</td>
                         <td class="px-6 py-4 font-mono text-indigo-300">${escapeHtml(c.mobile_number)}</td>
                         <td class="px-6 py-4 text-slate-400">${escapeHtml(c.email || '-')}</td>
@@ -773,7 +778,7 @@ async function loadUsers() {
             }
 
             let html = '';
-            data.users.forEach(u => {
+            data.users.forEach((u, idx) => {
                 let roleBadge = u.role === 'admin' 
                     ? `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs px-2.5 py-1 rounded-full font-bold">Super Admin</span>`
                     : `<span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs px-2.5 py-1 rounded-full font-semibold">Normal User</span>`;
@@ -793,9 +798,10 @@ async function loadUsers() {
 
                 html += `
                     <tr class="hover:bg-slate-700/40 transition">
-                        <td class="px-6 py-4 text-slate-400">#${u.id}</td>
-                        <td class="px-6 py-4 font-mono font-bold text-white">@${escapeHtml(u.username)} <span class="block text-xs font-normal text-slate-400">${escapeHtml(u.shop_name || 'Radhe RTO Services')}</span></td>
+                        <td class="px-6 py-4 text-slate-400 font-mono">#${idx + 1}</td>
+                        <td class="px-6 py-4 font-mono font-bold text-white">@${escapeHtml(u.username)}</td>
                         <td class="px-6 py-4 font-semibold text-slate-200">${escapeHtml(u.name)}</td>
+                        <td class="px-6 py-4 text-amber-300 font-medium">${escapeHtml(u.shop_name || 'Radhe RTO Services')}</td>
                         <td class="px-6 py-4 font-mono text-xs text-indigo-300">${escapeHtml(u.phone || '-')}</td>
                         <td class="px-6 py-4">${roleBadge}</td>
                         <td class="px-6 py-4 text-center">${actionBtns}</td>
@@ -881,20 +887,87 @@ async function saveSystemUser(e) {
     }
 }
 
-async function deleteSystemUser(id, username) {
-    if (!confirm(`Are you sure you want to delete user '@${username}'?`)) return;
+// ============================================================
+// SUPER ADMIN AUDIT LOGS & REPORTS FUNCTIONS
+// ============================================================
+async function loadReportUserFilter() {
+    const filterSelect = document.getElementById('report-user-filter');
+    if (!filterSelect) return;
+
     try {
-        const res = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/users`);
         const data = await res.json();
         if (data.success) {
-            showToast(data.message, 'info');
-            loadUsers();
-            loadSuperAdminUserFilter();
-        } else {
-            showToast(data.error || 'Failed to delete user', 'error');
+            let html = `<option value="">All System Users</option>`;
+            data.users.forEach(u => {
+                html += `<option value="${u.username}">${escapeHtml(u.name)} (@${u.username})</option>`;
+            });
+            filterSelect.innerHTML = html;
+        }
+    } catch(e){}
+}
+
+async function loadReports() {
+    const userFilter = document.getElementById('report-user-filter')?.value || '';
+    const monthFilter = document.getElementById('report-month-filter')?.value || '';
+
+    const tbody = document.getElementById('reports-table-body');
+    if (!tbody) return;
+
+    loadReportUserFilter();
+
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Loading activity logs & analytics...</td></tr>`;
+
+    try {
+        const params = new URLSearchParams();
+        params.append('user_id', getLoggedInUser()?.username || 'ravi');
+        params.append('user_role', getLoggedInUser()?.role || 'admin');
+        if (userFilter) params.append('filter_user', userFilter);
+        if (monthFilter) params.append('month', monthFilter);
+
+        const res = await fetch(`${API_BASE}/reports/analytics?${params.toString()}`);
+        const data = await res.json();
+
+        if (data.success) {
+            document.getElementById('report-stat-customers').innerText = data.stats.new_customers;
+            document.getElementById('report-stat-vehicles').innerText = data.stats.new_vehicles;
+            document.getElementById('report-stat-renewals').innerText = data.stats.renewals;
+
+            if (data.logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">No activity logs recorded for the selected filter.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            data.logs.forEach((l, idx) => {
+                let actionBadge = '';
+                if (l.action_type === 'ADD_CUSTOMER') {
+                    actionBadge = `<span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs px-2.5 py-1 rounded-md font-semibold"><i class="fa-solid fa-user-plus mr-1"></i> New Customer</span>`;
+                } else if (l.action_type === 'ADD_VEHICLE') {
+                    actionBadge = `<span class="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs px-2.5 py-1 rounded-md font-semibold"><i class="fa-solid fa-car mr-1"></i> New Vehicle</span>`;
+                } else if (l.action_type === 'RENEW_DOCUMENT') {
+                    actionBadge = `<span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs px-2.5 py-1 rounded-md font-bold"><i class="fa-solid fa-arrows-rotate mr-1"></i> Renewed Docs</span>`;
+                } else {
+                    actionBadge = `<span class="bg-slate-700 text-slate-300 text-xs px-2.5 py-1 rounded-md">${l.action_type}</span>`;
+                }
+
+                let timeStr = new Date(l.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+                html += `
+                    <tr class="hover:bg-slate-700/40 transition">
+                        <td class="px-6 py-4 text-slate-400 font-mono">#${idx + 1}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-slate-300">${timeStr}</td>
+                        <td class="px-6 py-4 font-semibold text-white">${escapeHtml(l.user_name)} <span class="block text-xs font-normal text-amber-300">${escapeHtml(l.shop_name)}</span></td>
+                        <td class="px-6 py-4">${actionBadge}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-indigo-300">${escapeHtml(l.customer_name || '')} ${l.vehicle_number ? `<span class="font-bold text-white ml-1">(${escapeHtml(l.vehicle_number)})</span>` : ''}</td>
+                        <td class="px-6 py-4 text-xs text-slate-300">${escapeHtml(l.details || '-')}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
         }
     } catch(err) {
-        showToast(err.message, 'error');
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-rose-400">Failed to load reports. Error: ${err.message}</td></tr>`;
     }
 }
 function openRenewModal(id) {
