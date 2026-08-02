@@ -93,7 +93,7 @@
                     </button>
                     <button onclick="switchTab('users')" id="nav-users" class="nav-btn hidden px-3.5 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
                         <i class="fa-solid fa-user-gear text-amber-400"></i>
-                        <span>User Management</span>
+                        <span>Users</span>
                     </button>
                     <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn hidden px-3.5 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition">
                         <i class="fa-solid fa-chart-line text-emerald-400"></i>
@@ -101,19 +101,8 @@
                     </button>
                 </nav>
 
-                <!-- User Profile, Filter & Logout -->
+                <!-- User Profile & Logout -->
                 <div class="flex items-center space-x-2 sm:space-x-3">
-                    <!-- Super Admin User Filter Dropdown in Top Header -->
-                    <div id="super-admin-filter-container" class="hidden flex items-center space-x-1.5 bg-slate-900/90 border border-amber-500/40 rounded-xl px-2.5 py-1 shadow">
-                        <span class="text-xs text-amber-300 font-bold hidden lg:flex items-center space-x-1">
-                            <i class="fa-solid fa-filter"></i>
-                            <span>View User:</span>
-                        </span>
-                        <select id="global-user-filter" onchange="onUserFilterChange()" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 font-semibold focus:outline-none focus:border-amber-500">
-                            <option value="">All Users (Super Admin View)</option>
-                        </select>
-                    </div>
-
                     <button onclick="triggerCronJob()" class="hidden lg:flex bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg items-center space-x-1 shadow transition">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                         <span>Cron</span>
@@ -144,11 +133,11 @@
                         <p class="text-sm text-slate-400">Track upcoming document expiries and automate WhatsApp customer reminders.</p>
                     </div>
                     <div class="flex items-center space-x-3 flex-wrap gap-2">
-                        <!-- Super Admin User Filter -->
+                        <!-- Super Admin User Filter (Moved below header for clean navbar view) -->
                         <div id="super-admin-filter-container" class="hidden flex items-center space-x-2 bg-slate-800/90 border border-amber-500/40 rounded-xl px-3 py-1.5 shadow">
                             <span class="text-xs text-amber-300 font-bold flex items-center space-x-1">
                                 <i class="fa-solid fa-filter"></i>
-                                <span>User:</span>
+                                <span>Filter User:</span>
                             </span>
                             <select id="global-user-filter" onchange="onUserFilterChange()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 font-semibold focus:outline-none focus:border-amber-500">
                                 <option value="">All Users (Super Admin View)</option>

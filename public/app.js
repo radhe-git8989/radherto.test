@@ -41,6 +41,7 @@ async function handleAdminLogin(e) {
             const sessionData = { 
                 username: data.user.username, 
                 name: data.user.name, 
+                shop_name: data.user.shop_name || 'Radhe RTO Services',
                 phone: data.user.phone || '',
                 role: data.user.role || 'user',
                 loggedInAt: new Date().toISOString() 
