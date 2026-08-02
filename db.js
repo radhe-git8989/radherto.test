@@ -96,10 +96,14 @@ async function initDB() {
                         password TEXT NOT NULL,
                         name TEXT NOT NULL,
                         phone TEXT,
+                        shop_name TEXT DEFAULT 'Radhe RTO Services',
                         role TEXT NOT NULL DEFAULT 'user',
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     );
                 `);
+
+                // Add shop_name column if table already exists without it
+                sqliteDb.run(`ALTER TABLE users ADD COLUMN shop_name TEXT DEFAULT 'Radhe RTO Services'`, () => {});
 
                 // 2. Customers Table
                 sqliteDb.run(`
@@ -141,11 +145,11 @@ async function initDB() {
                 sqliteDb.get("SELECT COUNT(*) as count FROM users", (err, row) => {
                     if (row && row.count === 0) {
                         console.log("🌱 Seeding default users into database...");
-                        sqliteDb.run(`INSERT INTO users (username, password, name, phone, role) VALUES
-                            ('ravi', '1234', 'Ravi Nakum', '9824582291', 'admin'),
-                            ('jignesh', '1234', 'Jignesh Chauhan', '6351839895', 'user'),
-                            ('raju', '1234', 'Raju Patel', '9876543210', 'user'),
-                            ('ashvin', '1234', 'Ashvin Parmar', '9823456789', 'user');
+                        sqliteDb.run(`INSERT INTO users (username, password, name, phone, shop_name, role) VALUES
+                            ('ravi', '1234', 'Ravi Nakum', '9824582291', 'Radhe RTO Services', 'admin'),
+                            ('jignesh', '1234', 'Jignesh Chauhan', '6351839895', 'Jignesh RTO Consultancy', 'user'),
+                            ('raju', '1234', 'Raju Patel', '9876543210', 'Raju Auto Agency', 'user'),
+                            ('ashvin', '1234', 'Ashvin Parmar', '9823456789', 'Ashvin RTO Services', 'user');
                         `);
                     }
                 });

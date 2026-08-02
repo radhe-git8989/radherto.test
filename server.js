@@ -46,6 +46,7 @@ app.post('/api/auth/login', async (req, res) => {
                     username: user.username,
                     name: user.name,
                     phone: user.phone,
+                    shop_name: user.shop_name || 'Radhe RTO Services',
                     role: user.role || (user.username === 'ravi' ? 'admin' : 'user')
                 }
             });
@@ -60,7 +61,7 @@ app.post('/api/auth/login', async (req, res) => {
 // Get all system users (for Super Admin management & filters)
 app.get('/api/users', async (req, res) => {
     try {
-        const users = await query('SELECT id, username, name, phone, role, created_at FROM users ORDER BY id ASC');
+        const users = await query('SELECT id, username, name, phone, shop_name, role, created_at FROM users ORDER BY id ASC');
         res.json({ success: true, users });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -70,17 +71,18 @@ app.get('/api/users', async (req, res) => {
 // Create new user (Super Admin only)
 app.post('/api/users', async (req, res) => {
     try {
-        const { username, password, name, phone, role } = req.body;
+        const { username, password, name, phone, shop_name, role } = req.body;
         if (!username || !password || !name) {
             return res.status(400).json({ success: false, error: 'Username, password, and name are required' });
         }
 
         const cleanUsername = username.toLowerCase().trim();
         const userRole = role || 'user';
+        const shop = shop_name || 'Radhe RTO Services';
 
         const result = await query(
-            'INSERT INTO users (username, password, name, phone, role) VALUES (?, ?, ?, ?, ?)',
-            [cleanUsername, password, name, phone || null, userRole]
+            'INSERT INTO users (username, password, name, phone, shop_name, role) VALUES (?, ?, ?, ?, ?, ?)',
+            [cleanUsername, password, name, phone || null, shop, userRole]
         );
 
         res.json({ success: true, message: `User '${cleanUsername}' created successfully!`, user_id: result.insertId });
@@ -92,11 +94,11 @@ app.post('/api/users', async (req, res) => {
     }
 });
 
-// Update User ID, Password, Name, Phone, Role (Super Admin only)
+// Update User ID, Password, Name, Phone, Shop Name, Role (Super Admin only)
 app.put('/api/users/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { username, password, name, phone, role } = req.body;
+        const { username, password, name, phone, shop_name, role } = req.body;
 
         if (!username || !name) {
             return res.status(400).json({ success: false, error: 'Username and name are required' });
@@ -109,16 +111,17 @@ app.put('/api/users/:id', async (req, res) => {
 
         const oldUsername = oldUsers[0].username;
         const newUsername = username.toLowerCase().trim();
+        const shop = shop_name || 'Radhe RTO Services';
 
         if (password && password.trim()) {
             await query(
-                'UPDATE users SET username=?, password=?, name=?, phone=?, role=? WHERE id=?',
-                [newUsername, password, name, phone || null, role || 'user', id]
+                'UPDATE users SET username=?, password=?, name=?, phone=?, shop_name=?, role=? WHERE id=?',
+                [newUsername, password, name, phone || null, shop, role || 'user', id]
             );
         } else {
             await query(
-                'UPDATE users SET username=?, name=?, phone=?, role=? WHERE id=?',
-                [newUsername, name, phone || null, role || 'user', id]
+                'UPDATE users SET username=?, name=?, phone=?, shop_name=?, role=? WHERE id=?',
+                [newUsername, name, phone || null, shop, role || 'user', id]
             );
         }
 
@@ -240,7 +243,9 @@ app.get('/api/expiries/upcoming', async (req, res) => {
                 v.id AS vehicle_id, v.vehicle_number, v.vehicle_type, v.user_id,
                 v.puc_expiry, v.insurance_expiry, v.fitness_expiry, v.tax_expiry,
                 c.id AS customer_id, c.name AS customer_name, c.mobile_number,
-                COALESCE(u.name, v.user_id) AS added_by_name
+                COALESCE(u.name, v.user_id) AS added_by_name,
+                COALESCE(u.shop_name, 'Radhe RTO Services') AS shop_name,
+                u.phone AS user_phone, u.name AS user_name
             FROM vehicles v
             JOIN customers c ON v.customer_id = c.id
             LEFT JOIN users u ON v.user_id = u.username
@@ -281,6 +286,9 @@ app.get('/api/expiries/upcoming', async (req, res) => {
                         vehicle_type: v.vehicle_type,
                         user_id: v.user_id,
                         added_by: v.added_by_name || v.user_id,
+                        shop_name: v.shop_name || 'Radhe RTO Services',
+                        user_name: v.user_name || v.added_by_name || v.user_id,
+                        user_phone: v.user_phone || '9824582291',
                         document_type: doc.type,
                         expiry_date: formatDate(doc.expiry),
                         days_left: daysLeft,

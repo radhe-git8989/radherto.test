@@ -111,7 +111,7 @@ async function showAppPortal() {
     if (currentUser) {
         const userLabel = document.getElementById('admin-user-label');
         const userAvatar = document.getElementById('admin-user-avatar');
-        if (userLabel) userLabel.textContent = `${currentUser.name}${currentUser.role === 'admin' ? ' (Super Admin)' : ''}`;
+        if (userLabel) userLabel.textContent = currentUser.name;
         if (userAvatar) userAvatar.textContent = (currentUser.name || currentUser.username).charAt(0).toUpperCase();
 
         const navUsers = document.getElementById('nav-users');
@@ -246,7 +246,7 @@ async function loadUpcomingExpiriesAlerts() {
                     <td class="px-6 py-4 font-bold ${item.days_left <= 3 ? 'text-rose-400' : 'text-amber-400'}">${item.days_left} d</td>
                     <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-xs border ${badgeClass}">${statusText}</span></td>
                     <td class="px-6 py-4 text-center">
-                        <button onclick="sendWhatsAppDirect('${item.mobile_number}', '${escapeHtml(item.customer_name)}', '${escapeHtml(item.vehicle_number)}', '${item.document_type}', '${item.expiry_date}', ${item.days_left})" 
+                        <button onclick="sendWhatsAppDirect('${item.mobile_number}', '${escapeHtml(item.customer_name)}', '${escapeHtml(item.vehicle_number)}', '${item.document_type}', '${item.expiry_date}', ${item.days_left}, '${item.user_id}', '${escapeHtml(item.shop_name)}', '${escapeHtml(item.user_name)}', '${escapeHtml(item.user_phone)}')" 
                                 class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/30 transition mx-auto" title="Send Direct WhatsApp Message">
                             <i class="fa-brands fa-whatsapp text-sm"></i>
                             <span>Send WhatsApp</span>
@@ -255,7 +255,6 @@ async function loadUpcomingExpiriesAlerts() {
                 </tr>
             `;
         });
-
         tbody.innerHTML = html;
     } catch (err) {
         tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-rose-400">Failed to load alerts. Error: ${err.message}</td></tr>`;
@@ -263,10 +262,9 @@ async function loadUpcomingExpiriesAlerts() {
 }
 
 // ============================================================
-// DIRECT WHATSAPP SENDER FUNCTION (Opens WhatsApp App / Web)
+// DIRECT WHATSAPP SENDER FUNCTION (Dynamic Shop Name & Owner Info)
 // ============================================================
-function sendWhatsAppDirect(mobile, name, vehicle, docType, expiry, daysLeft) {
-    // Format customer mobile number with country code 91
+function sendWhatsAppDirect(mobile, name, vehicle, docType, expiry, daysLeft, itemUserId, itemShopName, itemUserName, itemUserPhone) {
     let cleanMobile = mobile.replace(/\D/g, '');
     if (cleanMobile.length === 10) {
         cleanMobile = '91' + cleanMobile;
@@ -276,25 +274,24 @@ function sendWhatsAppDirect(mobile, name, vehicle, docType, expiry, daysLeft) {
         ? `has *EXPIRED* (${Math.abs(daysLeft)} days ago)` 
         : `will expire in *${daysLeft} days*`;
 
-    // Get logged-in admin's phone number & name
-    let adminPhone = '9824582291';
-    let adminName = 'Radhe RTO Services';
-    const session = sessionStorage.getItem('rto_admin_session');
-    if (session) {
-        try {
-            const data = JSON.parse(session);
-            if (data.phone) adminPhone = data.phone;
-            if (data.name) adminName = data.name;
-        } catch(e) {}
+    let shopName = itemShopName || 'Radhe RTO Services';
+    let senderName = itemUserName || 'Ravi Nakum';
+    let senderPhone = itemUserPhone || '9824582291';
+
+    const currentUser = getLoggedInUser();
+    if (currentUser && currentUser.role !== 'admin') {
+        if (currentUser.name) senderName = currentUser.name;
+        if (currentUser.phone) senderPhone = currentUser.phone;
+        if (currentUser.shop_name) shopName = currentUser.shop_name;
     }
 
-    let message = `🚨 *Radhe RTO Services - Document Expiry Alert* 🚨\n\nDear *${name}*,\nYour vehicle *${vehicle}* document (*${docType.toUpperCase()}*) ${statusText} on *${expiry}*.\n\nPlease contact us immediately for quick & hassle-free renewal!\n\n*${adminName}*\n📞 Call / WhatsApp: +91-${adminPhone}`;
+    let cleanSenderPhone = senderPhone.replace(/\D/g, '');
+
+    let message = `🚨 *${shopName} - Document Expiry Alert* 🚨\n\nDear *${name}*,\nYour vehicle *${vehicle}* document (*${docType.toUpperCase()}*) ${statusText} on *${expiry}*.\n\nPlease contact us immediately for quick & hassle-free renewal!\n\n*${senderName}*\n📞 Call / WhatsApp: +91-${cleanSenderPhone}`;
 
     let waUrl = `https://api.whatsapp.com/send?phone=${cleanMobile}&text=${encodeURIComponent(message)}`;
 
-    // Open WhatsApp directly in new browser tab / phone app
     window.open(waUrl, '_blank');
-
     showToast(`Opening WhatsApp for ${vehicle} (${name})...`, 'success');
 
     // Send log to server in background
@@ -377,10 +374,32 @@ function updateCustomerDropdowns() {
     if (modalSelect) modalSelect.innerHTML = modalHtml;
 }
 
-function openCustomerModal(id = null) {
+async function openCustomerModal(id = null) {
     document.getElementById('customer-form').reset();
     document.getElementById('cust-id').value = '';
     document.getElementById('customer-modal-title').innerText = 'Add New Customer';
+
+    const currentUser = getLoggedInUser();
+    const custContainer = document.getElementById('cust-owner-user-container');
+    const custUserSelect = document.getElementById('cust-owner-user');
+
+    if (currentUser && currentUser.role === 'admin' && custContainer && custUserSelect) {
+        custContainer.classList.remove('hidden');
+        try {
+            const res = await fetch(`${API_BASE}/users`);
+            const data = await res.json();
+            if (data.success) {
+                let html = '';
+                data.users.forEach(u => {
+                    html += `<option value="${u.username}">${escapeHtml(u.name)} (@${u.username})</option>`;
+                });
+                custUserSelect.innerHTML = html;
+                custUserSelect.value = currentUser.username;
+            }
+        } catch(e){}
+    } else if (custContainer) {
+        custContainer.classList.add('hidden');
+    }
 
     if (id) {
         const cust = allCustomersCache.find(c => c.id === id);
@@ -390,6 +409,7 @@ function openCustomerModal(id = null) {
             document.getElementById('cust-mobile').value = cust.mobile_number;
             document.getElementById('cust-email').value = cust.email || '';
             document.getElementById('cust-address').value = cust.address || '';
+            if (custUserSelect && cust.user_id) custUserSelect.value = cust.user_id;
             document.getElementById('customer-modal-title').innerText = 'Edit Customer';
         }
     }
@@ -408,9 +428,16 @@ async function saveCustomer(e) {
     const mobile_number = document.getElementById('cust-mobile').value.trim();
     const email = document.getElementById('cust-email').value.trim();
     const address = document.getElementById('cust-address').value.trim();
+    
     const currentUser = getLoggedInUser();
+    const custUserSelect = document.getElementById('cust-owner-user');
+    let targetUserId = currentUser ? currentUser.username : 'ravi';
 
-    const body = { name, mobile_number, email, address, user_id: currentUser ? currentUser.username : 'ravi' };
+    if (currentUser && currentUser.role === 'admin' && custUserSelect && custUserSelect.value) {
+        targetUserId = custUserSelect.value;
+    }
+
+    const body = { name, mobile_number, email, address, user_id: targetUserId };
 
     const method = id ? 'PUT' : 'POST';
     const url = id ? `${API_BASE}/customers/${id}` : `${API_BASE}/customers`;
@@ -581,12 +608,34 @@ function formatExpiryBadge(dateStr) {
     }
 }
 
-function openVehicleModal(id = null) {
+async function openVehicleModal(id = null) {
     document.getElementById('vehicle-form').reset();
     document.getElementById('veh-id').value = '';
     document.getElementById('vehicle-modal-title').innerText = 'Add New Vehicle';
 
     updateCustomerDropdowns();
+
+    const currentUser = getLoggedInUser();
+    const vehContainer = document.getElementById('veh-owner-user-container');
+    const vehUserSelect = document.getElementById('veh-owner-user');
+
+    if (currentUser && currentUser.role === 'admin' && vehContainer && vehUserSelect) {
+        vehContainer.classList.remove('hidden');
+        try {
+            const res = await fetch(`${API_BASE}/users`);
+            const data = await res.json();
+            if (data.success) {
+                let html = '';
+                data.users.forEach(u => {
+                    html += `<option value="${u.username}">${escapeHtml(u.name)} (@${u.username})</option>`;
+                });
+                vehUserSelect.innerHTML = html;
+                vehUserSelect.value = currentUser.username;
+            }
+        } catch(e){}
+    } else if (vehContainer) {
+        vehContainer.classList.add('hidden');
+    }
 
     if (id) {
         const v = allVehiclesCache.find(item => item.id === id);
@@ -599,6 +648,7 @@ function openVehicleModal(id = null) {
             document.getElementById('veh-insurance').value = v.insurance_expiry || '';
             document.getElementById('veh-fitness').value = v.fitness_expiry || '';
             document.getElementById('veh-tax').value = v.tax_expiry || '';
+            if (vehUserSelect && v.user_id) vehUserSelect.value = v.user_id;
             document.getElementById('vehicle-modal-title').innerText = 'Edit Vehicle';
         }
     }
@@ -614,6 +664,12 @@ async function saveVehicle(e) {
     e.preventDefault();
     const id = document.getElementById('veh-id').value;
     const currentUser = getLoggedInUser();
+    const vehUserSelect = document.getElementById('veh-owner-user');
+    let targetUserId = currentUser ? currentUser.username : 'ravi';
+
+    if (currentUser && currentUser.role === 'admin' && vehUserSelect && vehUserSelect.value) {
+        targetUserId = vehUserSelect.value;
+    }
 
     const body = {
         customer_id: document.getElementById('veh-customer-id').value,
@@ -623,7 +679,7 @@ async function saveVehicle(e) {
         insurance_expiry: document.getElementById('veh-insurance').value || null,
         fitness_expiry: document.getElementById('veh-fitness').value || null,
         tax_expiry: document.getElementById('veh-tax').value || null,
-        user_id: currentUser ? currentUser.username : 'ravi'
+        user_id: targetUserId
     };
 
     const method = id ? 'PUT' : 'POST';
@@ -738,7 +794,7 @@ async function loadUsers() {
                 html += `
                     <tr class="hover:bg-slate-700/40 transition">
                         <td class="px-6 py-4 text-slate-400">#${u.id}</td>
-                        <td class="px-6 py-4 font-mono font-bold text-white">@${escapeHtml(u.username)}</td>
+                        <td class="px-6 py-4 font-mono font-bold text-white">@${escapeHtml(u.username)} <span class="block text-xs font-normal text-slate-400">${escapeHtml(u.shop_name || 'Radhe RTO Services')}</span></td>
                         <td class="px-6 py-4 font-semibold text-slate-200">${escapeHtml(u.name)}</td>
                         <td class="px-6 py-4 font-mono text-xs text-indigo-300">${escapeHtml(u.phone || '-')}</td>
                         <td class="px-6 py-4">${roleBadge}</td>
@@ -760,6 +816,7 @@ function openUserModal(id = null) {
     document.getElementById('new-user-pass').required = true;
     document.getElementById('user-pass-label').innerText = 'Password *';
     document.getElementById('new-user-pass').placeholder = '••••••••';
+    document.getElementById('new-user-shopname').value = 'Radhe RTO Services';
     document.getElementById('user-modal-submit-btn').innerText = 'Create User';
     document.getElementById('user-modal').classList.remove('hidden');
 }
