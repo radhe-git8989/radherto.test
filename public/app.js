@@ -118,7 +118,9 @@ async function showAppPortal() {
         const navReports = document.getElementById('nav-reports');
         const filterContainer = document.getElementById('super-admin-filter-container');
 
-        if (currentUser.role === 'admin') {
+        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'ravi');
+
+        if (isAdmin) {
             if (navUsers) navUsers.classList.remove('hidden');
             if (navReports) navReports.classList.remove('hidden');
             if (filterContainer) filterContainer.classList.remove('hidden');
@@ -127,6 +129,8 @@ async function showAppPortal() {
             if (navUsers) navUsers.classList.add('hidden');
             if (navReports) navReports.classList.add('hidden');
             if (filterContainer) filterContainer.classList.add('hidden');
+            document.getElementById('view-users')?.classList.add('hidden');
+            document.getElementById('view-reports')?.classList.add('hidden');
         }
     }
 
@@ -158,6 +162,15 @@ function toggleLoginPassword(iconEl) {
 
 // Navigation Tabs Switcher
 function switchTab(tabName) {
+    const currentUser = getLoggedInUser();
+    const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'ravi');
+
+    if ((tabName === 'users' || tabName === 'reports') && !isAdmin) {
+        showToast('Access Denied: Only Super Admin can access this page!', 'error');
+        switchTab('dashboard');
+        return;
+    }
+
     document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
     
     // Reset nav styles
@@ -822,7 +835,8 @@ function openUserModal(id = null) {
     document.getElementById('new-user-pass').required = true;
     document.getElementById('user-pass-label').innerText = 'Password *';
     document.getElementById('new-user-pass').placeholder = '••••••••';
-    document.getElementById('new-user-shopname').value = 'Radhe RTO Services';
+    document.getElementById('new-user-shopname').value = '';
+    document.getElementById('new-user-shopname').placeholder = 'e.g. Raju Auto Agency';
     document.getElementById('user-modal-submit-btn').innerText = 'Create User';
     document.getElementById('user-modal').classList.remove('hidden');
 }
@@ -838,6 +852,7 @@ function editSystemUser(id) {
     document.getElementById('edit-user-id').value = user.id;
     document.getElementById('new-user-name').value = user.username;
     document.getElementById('new-user-fullname').value = user.name;
+    document.getElementById('new-user-shopname').value = user.shop_name || '';
     document.getElementById('new-user-phone').value = user.phone || '';
     document.getElementById('new-user-role').value = user.role || 'user';
     

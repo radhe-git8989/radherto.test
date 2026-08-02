@@ -138,6 +138,11 @@ async function initMySQLTables() {
             `);
         }
 
+        // Migration: Ensure default users have correct shop names
+        await pool.query("UPDATE users SET shop_name='Jignesh RTO Consultancy' WHERE username='jignesh' AND (shop_name IS NULL OR shop_name='Radhe RTO Services')");
+        await pool.query("UPDATE users SET shop_name='Raju Auto Agency' WHERE username='raju' AND (shop_name IS NULL OR shop_name='Radhe RTO Services')");
+        await pool.query("UPDATE users SET shop_name='Ashvin RTO Services' WHERE username='ashvin' AND (shop_name IS NULL OR shop_name='Radhe RTO Services')");
+
         // Seed Sample Customers & Vehicles if empty
         const [custs] = await pool.query('SELECT COUNT(*) as count FROM customers');
         if (custs[0].count === 0) {
@@ -285,6 +290,10 @@ async function initDB() {
                         `);
                     }
                 });
+
+                sqliteDb.run("UPDATE users SET shop_name='Jignesh RTO Consultancy' WHERE username='jignesh' AND (shop_name IS NULL OR shop_name='Radhe RTO Services')", () => {});
+                sqliteDb.run("UPDATE users SET shop_name='Raju Auto Agency' WHERE username='raju' AND (shop_name IS NULL OR shop_name='Radhe RTO Services')", () => {});
+                sqliteDb.run("UPDATE users SET shop_name='Ashvin RTO Services' WHERE username='ashvin' AND (shop_name IS NULL OR shop_name='Radhe RTO Services')", () => {});
 
                 // Insert sample data if empty
                 sqliteDb.get("SELECT COUNT(*) as count FROM customers", (err, row) => {
