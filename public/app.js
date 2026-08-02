@@ -173,17 +173,25 @@ function switchTab(tabName) {
 
     document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
     
-    // Reset nav styles
+    // Reset nav active button styles without removing 'hidden' class
     document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.className = 'nav-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 text-slate-300 hover:bg-slate-700 hover:text-white transition';
+        btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-md', 'font-semibold');
+        btn.classList.add('text-slate-300', 'font-medium');
     });
 
     const activeNav = document.getElementById(`nav-${tabName}`);
     const activeView = document.getElementById(`view-${tabName}`);
 
     if (activeNav && activeView) {
-        activeNav.className = 'nav-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 bg-indigo-600 text-white shadow-md';
+        activeNav.classList.remove('text-slate-300', 'font-medium');
+        activeNav.classList.add('bg-indigo-600', 'text-white', 'shadow-md', 'font-semibold');
         activeView.classList.remove('hidden');
+    }
+
+    // Always enforce hiding admin-only buttons for normal users
+    if (!isAdmin) {
+        document.getElementById('nav-users')?.classList.add('hidden');
+        document.getElementById('nav-reports')?.classList.add('hidden');
     }
 
     if (tabName === 'dashboard') {
@@ -193,9 +201,9 @@ function switchTab(tabName) {
         loadCustomers();
     } else if (tabName === 'vehicles') {
         loadVehicles();
-    } else if (tabName === 'users') {
+    } else if (tabName === 'users' && isAdmin) {
         loadUsers();
-    } else if (tabName === 'reports') {
+    } else if (tabName === 'reports' && isAdmin) {
         loadReports();
     }
 }
