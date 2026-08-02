@@ -454,6 +454,7 @@ async function saveCustomer(e) {
     const mobile_number = document.getElementById('cust-mobile').value.trim();
     const email = document.getElementById('cust-email').value.trim();
     const address = document.getElementById('cust-address').value.trim();
+    const vehNumber = document.getElementById('cust-veh-number')?.value?.trim()?.toUpperCase() || '';
     
     const currentUser = getLoggedInUser();
     const custUserSelect = document.getElementById('cust-owner-user');
