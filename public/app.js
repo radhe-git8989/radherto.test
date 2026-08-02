@@ -622,9 +622,6 @@ function openRenewModal(id) {
     document.getElementById('renew-doc-all').checked = false;
     document.querySelectorAll('.renew-doc-check').forEach(cb => cb.checked = false);
 
-    // Set today's date as default
-    setRenewDateToday();
-
     document.getElementById('renew-modal').classList.remove('hidden');
 }
 
