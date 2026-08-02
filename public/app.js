@@ -479,8 +479,7 @@ async function loadVehicles() {
                         <td class="px-6 py-4">${formatExpiryBadge(v.insurance_expiry)}</td>
                         <td class="px-6 py-4">${formatExpiryBadge(v.fitness_expiry)}</td>
                         <td class="px-6 py-4">${formatExpiryBadge(v.tax_expiry)}</td>
-                        <td class="px-6 py-4 text-center space-x-1.5">
-                            <button onclick="checkVehicleChallan('${escapeHtml(v.vehicle_number)}')" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs px-2.5 py-1 rounded-lg font-semibold transition" title="Check Pending Challan"><i class="fa-solid fa-file-invoice-dollar mr-1"></i> Challan</button>
+                        <td class="px-6 py-4 text-center space-x-2">
                             <button onclick="editVehicle(${v.id})" class="text-slate-400 hover:text-purple-400 transition" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
                             <button onclick="deleteVehicle(${v.id})" class="text-slate-400 hover:text-rose-400 transition" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
                         </td>
