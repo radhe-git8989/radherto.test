@@ -221,6 +221,35 @@ async function loadDashboardStats() {
             document.getElementById('stat-vehicles').innerText = data.stats.total_vehicles;
             document.getElementById('stat-expiries-15').innerText = data.stats.upcoming_expiries_15_days;
             document.getElementById('stat-critical-expiries').innerText = data.stats.critical_expiries_3_days + data.stats.expired_count;
+
+            const currentUser = getLoggedInUser();
+            const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'ravi');
+
+            const breakdownCard = document.getElementById('super-admin-breakdown-card');
+            const breakdownContainer = document.getElementById('user-breakdown-container');
+
+            if (isAdmin && data.stats.user_breakdown && data.stats.user_breakdown.length > 0 && breakdownCard && breakdownContainer) {
+                breakdownCard.classList.remove('hidden');
+                let html = '';
+                data.stats.user_breakdown.forEach(u => {
+                    html += `
+                        <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3.5 flex flex-col justify-between hover:border-amber-500/50 transition">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-bold text-white text-sm">@${escapeHtml(u.username)}</span>
+                                <span class="text-[11px] font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">${escapeHtml(u.name)}</span>
+                            </div>
+                            <p class="text-xs text-amber-300/80 mb-2 truncate"><i class="fa-solid fa-store text-[10px] mr-1"></i>${escapeHtml(u.shop_name || 'Radhe RTO Services')}</p>
+                            <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-800">
+                                <span class="text-indigo-300 font-medium"><i class="fa-solid fa-users text-indigo-400 mr-1"></i> <strong class="text-white text-sm">${u.customer_count}</strong> Customers</span>
+                                <span class="text-purple-300 font-medium"><i class="fa-solid fa-car text-purple-400 mr-1"></i> <strong class="text-white text-sm">${u.vehicle_count}</strong> Vehicles</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                breakdownContainer.innerHTML = html;
+            } else if (breakdownCard) {
+                breakdownCard.classList.add('hidden');
+            }
         }
     } catch (err) {
         console.error('Error fetching stats:', err);
@@ -361,7 +390,7 @@ async function loadCustomers() {
 
             let html = '';
             data.customers.forEach((c, idx) => {
-                let ownerBadge = isAdmin ? `<span class="block text-[11px] font-medium text-amber-300 mt-0.5">By: ${escapeHtml(c.added_by_name || c.user_id)}</span>` : '';
+                let ownerBadge = isAdmin ? `<span class="block text-[11px] font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 w-max mt-1"><i class="fa-solid fa-user-tag text-[10px] mr-1"></i>Owner: ${escapeHtml(c.added_by_name || c.user_id)}</span>` : '';
                 html += `
                     <tr class="hover:bg-slate-700/40 transition">
                         <td class="px-6 py-4 text-slate-400 font-mono">#${idx + 1}</td>
@@ -574,8 +603,8 @@ async function loadVehicles() {
             const isAdmin = currentUser && currentUser.role === 'admin';
 
             let html = '';
-            data.vehicles.forEach(v => {
-                let ownerBadge = isAdmin ? `<span class="block text-[11px] font-medium text-amber-300 mt-0.5">By: ${escapeHtml(v.added_by_name || v.user_id)}</span>` : '';
+            data.vehicles.forEach((v, idx) => {
+                let ownerBadge = isAdmin ? `<span class="block text-[11px] font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 w-max mt-1"><i class="fa-solid fa-user-tag text-[10px] mr-1"></i>Owner: ${escapeHtml(v.added_by_name || v.user_id)}</span>` : '';
                 html += `
                     <tr class="hover:bg-slate-700/40 transition">
                         <td class="px-6 py-4 font-mono font-bold text-white">${escapeHtml(v.vehicle_number)} ${ownerBadge}</td>

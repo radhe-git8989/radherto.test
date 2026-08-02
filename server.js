@@ -224,6 +224,18 @@ app.get('/api/dashboard/stats', async (req, res) => {
             });
         });
 
+        let userBreakdown = [];
+        if (user_role === 'admin' && !filter_user) {
+            userBreakdown = await query(`
+                SELECT 
+                    u.username, u.name, u.shop_name,
+                    (SELECT COUNT(*) FROM customers c WHERE c.user_id = u.username) AS customer_count,
+                    (SELECT COUNT(*) FROM vehicles v WHERE v.user_id = u.username) AS vehicle_count
+                FROM users u
+                ORDER BY u.id ASC
+            `);
+        }
+
         res.json({
             success: true,
             stats: {
@@ -231,7 +243,8 @@ app.get('/api/dashboard/stats', async (req, res) => {
                 total_vehicles: parseInt(total_vehicles) || 0,
                 upcoming_expiries_15_days: upcomingExpiries15Days,
                 critical_expiries_3_days: criticalExpiries3Days,
-                expired_count: expiredCount
+                expired_count: expiredCount,
+                user_breakdown: userBreakdown
             }
         });
     } catch (err) {
