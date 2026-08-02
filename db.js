@@ -58,26 +58,132 @@ async function query(sql, params = []) {
     }
 }
 
+async function initMySQLTables() {
+    if (!pool) return;
+    try {
+        // 1. Users Table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(50) NOT NULL UNIQUE,
+                password VARCHAR(255) NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                phone VARCHAR(20),
+                shop_name VARCHAR(150) DEFAULT 'Radhe RTO Services',
+                role VARCHAR(20) NOT NULL DEFAULT 'user',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        try {
+            await pool.query(`ALTER TABLE users ADD COLUMN shop_name VARCHAR(150) DEFAULT 'Radhe RTO Services'`);
+        } catch(e){}
+
+        // 2. Customers Table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS customers (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(50) DEFAULT 'ravi',
+                name VARCHAR(100) NOT NULL,
+                mobile_number VARCHAR(20) NOT NULL UNIQUE,
+                email VARCHAR(100),
+                address TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        try {
+            await pool.query(`ALTER TABLE customers ADD COLUMN user_id VARCHAR(50) DEFAULT 'ravi'`);
+        } catch(e){}
+
+        // 3. Vehicles Table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS vehicles (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                customer_id INT NOT NULL,
+                user_id VARCHAR(50) DEFAULT 'ravi',
+                vehicle_number VARCHAR(30) NOT NULL UNIQUE,
+                vehicle_type VARCHAR(50) DEFAULT 'Car',
+                puc_expiry DATE,
+                insurance_expiry DATE,
+                fitness_expiry DATE,
+                tax_expiry DATE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+            );
+        `);
+
+        try {
+            await pool.query(`ALTER TABLE vehicles ADD COLUMN user_id VARCHAR(50) DEFAULT 'ravi'`);
+        } catch(e){}
+
+        // Seed Default Users if empty
+        const [users] = await pool.query('SELECT COUNT(*) as count FROM users');
+        if (users[0].count === 0) {
+            console.log("🌱 Seeding default users into MySQL database...");
+            await pool.query(`INSERT INTO users (username, password, name, phone, shop_name, role) VALUES
+                ('ravi', '1234', 'Ravi Nakum', '9824582291', 'Radhe RTO Services', 'admin'),
+                ('jignesh', '1234', 'Jignesh Chauhan', '6351839895', 'Jignesh RTO Consultancy', 'user'),
+                ('raju', '1234', 'Raju Patel', '9876543210', 'Raju Auto Agency', 'user'),
+                ('ashvin', '1234', 'Ashvin Parmar', '9823456789', 'Ashvin RTO Services', 'user');
+            `);
+        }
+
+        // Seed Sample Customers & Vehicles if empty
+        const [custs] = await pool.query('SELECT COUNT(*) as count FROM customers');
+        if (custs[0].count === 0) {
+            console.log("🌱 Seeding sample data into MySQL database...");
+            await pool.query(`INSERT INTO customers (id, user_id, name, mobile_number, email, address) VALUES
+                (1, 'ravi', 'Ramesh Patel', '9876543210', 'ramesh@example.com', 'Ahmedabad, Gujarat'),
+                (2, 'raju', 'Suresh Sharma', '9823456789', 'suresh@example.com', 'Surat, Gujarat'),
+                (3, 'ashvin', 'Priya Shah', '9912345678', 'priya@example.com', 'Vadodara, Gujarat');
+            `);
+
+            await pool.query(`INSERT INTO vehicles (id, customer_id, user_id, vehicle_number, vehicle_type, puc_expiry, insurance_expiry, fitness_expiry, tax_expiry) VALUES
+                (1, 1, 'ravi', 'GJ-01-AB-1234', 'Car', '${addDays(5)}', '${addDays(10)}', '${addDays(90)}', '${addDays(180)}'),
+                (2, 1, 'ravi', 'GJ-01-XY-9876', 'Bike', '${addDays(2)}', '${addDays(-3)}', '${addDays(120)}', '${addDays(200)}'),
+                (3, 2, 'raju', 'GJ-05-CD-5678', 'Truck', '${addDays(12)}', '${addDays(14)}', '${addDays(8)}', '${addDays(45)}'),
+                (4, 3, 'ashvin', 'GJ-06-EF-4321', 'Car', '${addDays(25)}', '${addDays(2)}', '${addDays(60)}', '${addDays(150)}');
+            `);
+        }
+    } catch(err) {
+        console.error('Error initializing MySQL tables:', err.message);
+    }
+}
+
 async function initDB() {
-    const config = {
-        host: process.env.DB_HOST || 'localhost',
-        user: process.env.DB_USER || 'root',
-        password: process.env.DB_PASSWORD || '',
-        database: process.env.DB_NAME || 'rto_management_db',
-        port: process.env.DB_PORT || 3306,
-        waitForConnections: true,
-        connectionLimit: 10,
-        queueLimit: 0,
-        ssl: (process.env.DB_SSL === 'true' || (process.env.DB_HOST && process.env.DB_HOST.includes('tidbcloud.com'))) ? { rejectUnauthorized: false } : undefined
-    };
+    const host = process.env.DB_HOST || 'localhost';
+    const user = process.env.DB_USER || 'root';
+    const password = process.env.DB_PASSWORD || '';
+    const dbName = process.env.DB_NAME || 'rto_management_db';
+    const port = process.env.DB_PORT || 3306;
+    const ssl = (process.env.DB_SSL === 'true' || (process.env.DB_HOST && process.env.DB_HOST.includes('tidbcloud.com'))) ? { rejectUnauthorized: false } : undefined;
 
     try {
-        // Attempt MySQL connection
+        // Step 1: Attempt to create MySQL database if missing
+        try {
+            const rootConn = await mysql.createConnection({ host, user, password, port, ssl });
+            await rootConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
+            await rootConn.end();
+        } catch(e) {
+            // Safe to ignore if connection without DB fails or user lacks CREATE DB privilege
+        }
+
+        // Step 2: Create connection pool with database specified
+        const config = {
+            host, user, password, database: dbName, port, ssl,
+            waitForConnections: true,
+            connectionLimit: 10,
+            queueLimit: 0
+        };
+
         pool = mysql.createPool(config);
         const connection = await pool.getConnection();
-        console.log(`✅ Connected to MySQL Database [${config.database}] at ${config.host}:${config.port}`);
+        console.log(`✅ Connected to MySQL Database [${dbName}] at ${host}:${port}`);
         connection.release();
         dbType = 'mysql';
+
+        await initMySQLTables();
     } catch (err) {
         console.warn(`⚠️ Could not connect to MySQL (${err.message}). Falling back to embedded SQLite database for seamless execution...`);
         dbType = 'sqlite';
@@ -102,7 +208,6 @@ async function initDB() {
                     );
                 `);
 
-                // Add shop_name column if table already exists without it
                 sqliteDb.run(`ALTER TABLE users ADD COLUMN shop_name TEXT DEFAULT 'Radhe RTO Services'`, () => {});
 
                 // 2. Customers Table
@@ -118,7 +223,6 @@ async function initDB() {
                     );
                 `);
 
-                // Add user_id column if table already exists without it
                 sqliteDb.run(`ALTER TABLE customers ADD COLUMN user_id TEXT DEFAULT 'ravi'`, () => {});
 
                 // 3. Vehicles Table
@@ -138,7 +242,6 @@ async function initDB() {
                     );
                 `);
 
-                // Add user_id column if table already exists without it
                 sqliteDb.run(`ALTER TABLE vehicles ADD COLUMN user_id TEXT DEFAULT 'ravi'`, () => {});
 
                 // Seed Default Users if empty
