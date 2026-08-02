@@ -181,7 +181,9 @@ app.get('/api/dashboard/stats', async (req, res) => {
         let vehWhere = 'WHERE 1=1';
         const params = [];
 
-        if (user_role !== 'admin') {
+        const isAdmin = user_role === 'admin' || user_id === 'ravi';
+
+        if (!isAdmin) {
             custWhere += ' AND user_id = ?';
             vehWhere += ' AND user_id = ?';
             params.push(user_id || 'ravi');
@@ -263,7 +265,9 @@ app.get('/api/expiries/upcoming', async (req, res) => {
         let whereClause = 'WHERE 1=1';
         const params = [];
 
-        if (user_role !== 'admin') {
+        const isAdmin = user_role === 'admin' || user_id === 'ravi';
+
+        if (!isAdmin) {
             whereClause += ' AND v.user_id = ?';
             params.push(user_id || 'ravi');
         } else if (filter_user) {
@@ -357,7 +361,9 @@ app.get('/api/customers', async (req, res) => {
         `;
         let params = [];
 
-        if (user_role !== 'admin') {
+        const isAdmin = user_role === 'admin' || user_id === 'ravi';
+
+        if (!isAdmin) {
             sql += ` AND c.user_id = ?`;
             params.push(user_id || 'ravi');
         } else if (filter_user) {
@@ -446,7 +452,9 @@ app.get('/api/vehicles', async (req, res) => {
         `;
         const params = [];
 
-        if (user_role !== 'admin') {
+        const isAdmin = user_role === 'admin' || user_id === 'ravi';
+
+        if (!isAdmin) {
             sql += ` AND v.user_id = ?`;
             params.push(user_id || 'ravi');
         } else if (filter_user) {

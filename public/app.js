@@ -81,10 +81,16 @@ function getUserQueryParams() {
         const data = JSON.parse(session);
         const params = new URLSearchParams();
         if (data.username) params.append('user_id', data.username);
-        if (data.role) params.append('user_role', data.role);
+        
+        const isAdmin = data.role === 'admin' || data.username === 'ravi';
+        if (isAdmin) {
+            params.append('user_role', 'admin');
+        } else if (data.role) {
+            params.append('user_role', data.role);
+        }
 
         const globalFilter = document.getElementById('global-user-filter');
-        if (data.role === 'admin' && globalFilter && globalFilter.value) {
+        if (isAdmin && globalFilter && globalFilter.value) {
             params.append('filter_user', globalFilter.value);
         }
         return params.toString();
@@ -913,6 +919,7 @@ async function saveSystemUser(e) {
     const username = document.getElementById('new-user-name').value.trim().toLowerCase();
     const password = document.getElementById('new-user-pass').value;
     const name = document.getElementById('new-user-fullname').value.trim();
+    const shop_name = document.getElementById('new-user-shopname').value.trim();
     const phone = document.getElementById('new-user-phone').value.trim();
     const role = document.getElementById('new-user-role').value;
 
@@ -923,7 +930,7 @@ async function saveSystemUser(e) {
         const res = await fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, name, phone, role })
+            body: JSON.stringify({ username, password, name, shop_name, phone, role })
         });
         const data = await res.json();
 
@@ -932,10 +939,33 @@ async function saveSystemUser(e) {
             closeUserModal();
             loadUsers();
             loadSuperAdminUserFilter();
+            loadDashboardStats();
         } else {
             showToast(data.error || 'Failed to save user', 'error');
         }
     } catch(err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function deleteSystemUser(id, username) {
+    if (!confirm(`Are you sure you want to permanently delete user '@${username}'?`)) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast(data.message, 'info');
+            loadUsers();
+            loadSuperAdminUserFilter();
+            loadDashboardStats();
+            loadCustomers();
+            loadVehicles();
+        } else {
+            showToast(data.error || 'Failed to delete user', 'error');
+        }
+    } catch (err) {
         showToast(err.message, 'error');
     }
 }
