@@ -705,6 +705,10 @@ async function loadVehicles() {
                         <td class="px-6 py-4">${formatExpiryBadge(v.tax_expiry)}</td>
                         <td class="px-6 py-4 text-center">
                             <div class="flex items-center justify-center space-x-2">
+                                <button onclick="openRcStatusWeb('${escapeHtml(v.vehicle_number)}')" class="bg-cyan-600/20 hover:bg-cyan-500/30 text-cyan-300 hover:text-white border border-cyan-500/30 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition flex items-center space-x-1" title="Check RC Status Web for ${escapeHtml(v.vehicle_number)}">
+                                    <i class="fa-solid fa-id-card"></i>
+                                    <span>RC Status</span>
+                                </button>
                                 <button onclick="openRenewModal(${v.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow transition flex items-center space-x-1" title="Renew Documents">
                                     <i class="fa-solid fa-arrows-rotate"></i>
                                     <span>Renew</span>
@@ -722,6 +726,35 @@ async function loadVehicles() {
     } catch (err) {
         console.error('Error loading vehicles:', err);
     }
+}
+
+function openRcStatusWeb(vehicleNumber = '') {
+    const rcWebUrl = 'https://vahan.parivahan.gov.in/nrservices/faces/user/citizen/citizenlogin.xhtml';
+    
+    let vNo = vehicleNumber;
+    if (!vNo) {
+        const searchInput = document.getElementById('vehicle-search');
+        if (searchInput && searchInput.value.trim()) {
+            vNo = searchInput.value.trim();
+        }
+    }
+
+    if (vNo) {
+        const cleanNo = String(vNo).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(cleanNo).then(() => {
+                showToast(`Vehicle No. ${cleanNo} copied to clipboard! Opening Parivahan RC Status Web...`, 'success');
+            }).catch(() => {
+                showToast(`Opening Parivahan RC Status Web for ${cleanNo}...`, 'info');
+            });
+        } else {
+            showToast(`Opening Parivahan RC Status Web for ${cleanNo}...`, 'info');
+        }
+    } else {
+        showToast('Opening Official Parivahan RC Status Website...', 'info');
+    }
+
+    window.open(rcWebUrl, '_blank');
 }
 
 function cleanDateOnly(dateStr) {
